@@ -1,5 +1,5 @@
  ---
-title: "Index"
+title: "Regenerating vegetation still unable to bring back the lost rainfall in the Brazilian Amazon"
 author: Laís Rosa Oliveira
 format: 
   html:
@@ -42,6 +42,229 @@ library(cowplot)
 ```
 
 ### Precipitation
+
+#### Model choice
+
+```{r}
+
+all_pf_sf_prec_model = read_xlsx("data/all_pf_sf_prec_model.xlsx")
+
+# CBA
+
+## Primary vegetation
+
+model_cba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_prec$type = as.factor(model_cba_pf_prec$type)
+
+## Secondary vegetation
+
+model_cba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_prec$type = as.factor(model_cba_sf_prec$type)
+
+# EBA
+
+## Primary vegetation
+
+model_eba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_prec$type = as.factor(model_eba_pf_prec$type)
+
+## Secondary vegetation
+
+model_eba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_prec$type = as.factor(model_eba_sf_prec$type)
+
+# SBA
+
+## Primary vegetation
+
+model_sba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_prec$type = as.factor(model_sba_pf_prec$type)
+
+## Secondary vegetation
+
+model_sba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_prec$type = as.factor(model_sba_sf_prec$type)
+```
+
+
+```{r}
+
+all_pf_sf_prec_model = read_xlsx("data/all_pf_sf_prec_model.xlsx")
+
+## CBA
+
+### Primary vegetation
+
+A_CBA_pf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_cba_pf_prec)
+
+B_CBA_pf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_cba_pf_prec)
+
+C_CBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_cba_pf_prec)
+
+D_CBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_cba_pf_prec)
+
+E_CBA_pf_prec = lm(Prec ~ ff_area, data = model_cba_pf_prec)
+
+F_CBA_pf_prec = lm(Prec ~ Ano, data = model_cba_pf_prec)
+
+G_CBA_pf_prec = lm(Prec ~ ff_area + Ano, data = model_cba_pf_prec)
+
+AIC(A_CBA_pf_prec,B_CBA_pf_prec,C_CBA_pf_prec,D_CBA_pf_prec,
+    E_CBA_pf_prec,F_CBA_pf_prec,G_CBA_pf_prec)
+BIC(A_CBA_pf_prec,B_CBA_pf_prec,C_CBA_pf_prec,D_CBA_pf_prec,
+    E_CBA_pf_prec,F_CBA_pf_prec,G_CBA_pf_prec)
+
+## Secondary vegetation
+
+A_CBA_sf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_cba_sf_prec)
+
+B_CBA_sf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_cba_sf_prec)
+
+C_CBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_cba_sf_prec)
+
+D_CBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_cba_sf_prec)
+
+E_CBA_sf_prec = lm(Prec ~ ff_area, data = model_cba_sf_prec)
+
+F_CBA_sf_prec = lm(Prec ~ Ano, data = model_cba_sf_prec)
+
+G_CBA_sf_prec = lm(Prec ~ ff_area + Ano, data = model_cba_sf_prec)
+
+AIC(A_CBA_sf_prec,B_CBA_sf_prec,C_CBA_sf_prec,D_CBA_pf_prec,
+    E_CBA_sf_prec,F_CBA_sf_prec,G_CBA_sf_prec)
+BIC(A_CBA_sf_prec,B_CBA_sf_prec,C_CBA_sf_prec,D_CBA_pf_prec,
+    E_CBA_sf_prec,F_CBA_sf_prec,G_CBA_sf_prec)
+
+## EBA
+
+### Primary vegetation
+
+A_EBA_pf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_eba_pf_prec)
+
+B_EBA_pf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_eba_pf_prec)
+
+C_EBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_pf_prec)
+
+D_EBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_pf_prec)
+
+E_EBA_pf_prec = lm(Prec ~ ff_area, data = model_eba_pf_prec)
+
+F_EBA_pf_prec = lm(Prec ~ Ano, data = model_eba_pf_prec)
+
+G_EBA_pf_prec = lm(Prec ~ ff_area + Ano, data = model_eba_pf_prec)
+
+AIC(A_EBA_pf_prec,B_EBA_pf_prec,C_EBA_pf_prec,D_EBA_pf_prec,
+    E_EBA_pf_prec,F_EBA_pf_prec,G_EBA_pf_prec)
+BIC(A_EBA_pf_prec,B_EBA_pf_prec,C_EBA_pf_prec,D_EBA_pf_prec,
+    E_EBA_pf_prec,F_EBA_pf_prec,G_EBA_pf_prec)
+
+## Secondary vegetation
+
+A_EBA_sf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_eba_sf_prec)
+
+B_EBA_sf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_eba_sf_prec)
+
+C_EBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_sf_prec)
+
+D_EBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_sf_prec)
+
+E_EBA_sf_prec = lm(Prec ~ ff_area, data = model_eba_sf_prec)
+
+F_EBA_sf_prec = lm(Prec ~ Ano, data = model_eba_sf_prec)
+
+G_EBA_sf_prec = lm(Prec ~ ff_area + Ano, data = model_eba_sf_prec)
+
+AIC(A_EBA_sf_prec,B_EBA_sf_prec,C_EBA_sf_prec,D_EBA_sf_prec,
+    E_EBA_sf_prec,F_EBA_sf_prec,G_EBA_sf_prec)
+BIC(A_EBA_sf_prec,B_EBA_sf_prec,C_EBA_sf_prec,D_EBA_sf_prec,
+    E_EBA_sf_prec,F_EBA_sf_prec,G_EBA_sf_prec)
+
+## SBA
+
+### Primary vegetation
+
+A_SBA_pf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_sba_pf_prec)
+
+B_SBA_pf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_sba_pf_prec)
+
+C_SBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_sba_pf_prec)
+
+D_SBA_pf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_sba_pf_prec)
+
+E_SBA_pf_prec = lm(Prec ~ ff_area, data = model_sba_pf_prec)
+
+F_SBA_pf_prec = lm(Prec ~ Ano, data = model_sba_pf_prec)
+
+G_SBA_pf_prec = lm(Prec ~ ff_area + Ano, data = model_sba_pf_prec)
+
+AIC(A_SBA_pf_prec,B_SBA_pf_prec,C_SBA_pf_prec,D_SBA_pf_prec,
+    E_SBA_pf_prec,F_SBA_pf_prec,G_SBA_pf_prec)
+BIC(A_SBA_pf_prec,B_SBA_pf_prec,C_SBA_pf_prec,D_SBA_pf_prec,
+    E_SBA_pf_prec,F_SBA_pf_prec,G_SBA_pf_prec)
+
+## Secondary vegetation
+
+A_SBA_sf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_eba_sf_prec)
+
+B_SBA_sf_prec = lmerTest::lmer(Prec ~ Ano +
+             (1|ff_area), data = model_eba_sf_prec)
+
+C_SBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_sf_prec)
+
+D_SBA_sf_prec = lmerTest::lmer(Prec ~ 1 +
+             (1|ff_area), data = model_eba_sf_prec)
+
+E_SBA_sf_prec = lm(Prec ~ ff_area, data = model_eba_sf_prec)
+
+F_SBA_sf_prec = lm(Prec ~ Ano, data = model_eba_sf_prec)
+
+G_SBA_sf_prec = lm(Prec ~ ff_area + Ano, data = model_eba_sf_prec)
+
+AIC(A_SBA_sf_prec,B_SBA_sf_prec,C_SBA_sf_prec,D_SBA_sf_prec,
+    E_SBA_sf_prec,F_SBA_sf_prec,G_SBA_sf_prec)
+BIC(A_SBA_sf_prec,B_SBA_sf_prec,C_SBA_sf_prec,D_SBA_sf_prec,
+    E_SBA_sf_prec,F_SBA_sf_prec,G_SBA_sf_prec)
+```
 
 
 #### Mixed linear regression model to estimate the variable "Prec" based on the variable "ff_area"
@@ -754,6 +977,227 @@ ggsave("fig/predicted_precipitation_SBA.png", bg = "white",
 
 ### Evapotranspiration
 
+#### Model choice
+
+```{r}
+
+all_pf_sf_evapo_model = read_xlsx("data/all_pf_sf_evapo_model.xlsx")
+
+# CBA
+
+## Primary vegetation
+
+model_cba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_evapo$type = as.factor(model_cba_pf_evapo$type)
+
+## Secondary vegetation
+
+model_cba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_evapo$type = as.factor(model_cba_sf_evapo$type)
+
+# EBA
+
+## Primary vegetation
+
+model_eba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_evapo$type = as.factor(model_eba_pf_evapo$type)
+
+## Secondary vegetation
+
+model_eba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_evapo$type = as.factor(model_eba_sf_evapo$type)
+
+# SBA
+
+## Primary vegetation
+
+model_sba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_evapo$type = as.factor(model_sba_pf_evapo$type)
+
+## Secondary vegetation
+
+model_sba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_evapo$type = as.factor(model_sba_sf_evapo$type)
+```
+
+
+```{r}
+
+## CBA
+
+### Primary vegetation
+
+A_CBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_cba_pf_evapo)
+
+B_CBA_pf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_cba_pf_evapo)
+
+C_CBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_cba_pf_evapo)
+
+D_CBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_cba_pf_evapo)
+
+E_CBA_pf_evapo = lm(Evapo ~ ff_area, data = model_cba_pf_evapo)
+
+F_CBA_pf_evapo = lm(Evapo ~ Ano, data = model_cba_pf_evapo)
+
+G_CBA_pf_evapo = lm(Evapo ~ ff_area + Ano, data = model_cba_pf_evapo)
+
+AIC(A_CBA_pf_evapo,B_CBA_pf_evapo,C_CBA_pf_evapo,D_CBA_pf_evapo,
+    E_CBA_pf_evapo,F_CBA_pf_evapo,G_CBA_pf_evapo)
+BIC(A_CBA_pf_evapo,B_CBA_pf_evapo,C_CBA_pf_evapo,D_CBA_pf_evapo,
+    E_CBA_pf_evapo,F_CBA_pf_evapo,G_CBA_pf_evapo)
+
+## Secondary vegetation
+
+A_CBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_cba_sf_evapo)
+
+B_CBA_sf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_cba_sf_evapo)
+
+C_CBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_cba_sf_evapo)
+
+D_CBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_cba_sf_evapo)
+
+E_CBA_sf_evapo = lm(Evapo ~ ff_area, data = model_cba_sf_evapo)
+
+F_CBA_sf_evapo = lm(Evapo ~ Ano, data = model_cba_sf_evapo)
+
+G_CBA_sf_evapo = lm(Evapo ~ ff_area + Ano, data = model_cba_sf_evapo)
+
+AIC(A_CBA_sf_evapo,B_CBA_sf_evapo,C_CBA_sf_evapo,D_CBA_sf_evapo,
+    E_CBA_sf_evapo,F_CBA_sf_evapo,G_CBA_sf_evapo)
+BIC(A_CBA_sf_evapo,B_CBA_sf_evapo,C_CBA_sf_evapo,D_CBA_sf_evapo,
+    E_CBA_sf_evapo,F_CBA_sf_evapo,G_CBA_sf_evapo)
+
+## EBA
+
+### Primary vegetation
+
+A_EBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_eba_pf_evapo)
+
+B_EBA_pf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_eba_pf_evapo)
+
+C_EBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_pf_evapo)
+
+D_EBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_pf_evapo)
+
+E_EBA_pf_evapo = lm(Evapo ~ ff_area, data = model_eba_pf_evapo)
+
+F_EBA_pf_evapo = lm(Evapo ~ Ano, data = model_eba_pf_evapo)
+
+G_EBA_pf_evapo = lm(Evapo ~ ff_area + Ano, data = model_eba_pf_evapo)
+
+AIC(A_EBA_pf_evapo,B_EBA_pf_evapo,C_EBA_pf_evapo,D_EBA_pf_evapo,
+    E_EBA_pf_evapo,F_EBA_pf_evapo,G_EBA_pf_evapo)
+BIC(A_EBA_pf_evapo,B_EBA_pf_evapo,C_EBA_pf_evapo,D_EBA_pf_evapo,
+    E_EBA_pf_evapo,F_EBA_pf_evapo,G_EBA_pf_evapo)
+
+## Secondary vegetation
+
+A_EBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_eba_sf_evapo)
+
+B_EBA_sf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+C_EBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+D_EBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+E_EBA_sf_evapo = lm(Evapo ~ ff_area, data = model_eba_sf_evapo)
+
+F_EBA_sf_evapo = lm(Evapo ~ Ano, data = model_eba_sf_evapo)
+
+G_EBA_sf_evapo = lm(Evapo ~ ff_area + Ano, data = model_eba_sf_evapo)
+
+AIC(A_EBA_sf_evapo,B_EBA_sf_evapo,C_EBA_sf_evapo,D_EBA_sf_evapo,
+    E_EBA_sf_evapo,F_EBA_sf_evapo,G_EBA_sf_evapo)
+BIC(A_EBA_sf_evapo,B_EBA_sf_evapo,C_EBA_sf_evapo,D_EBA_sf_evapo,
+    E_EBA_sf_evapo,F_EBA_sf_evapo,G_EBA_sf_evapo)
+
+## SBA
+
+### Primary vegetation
+
+A_SBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_sba_pf_evapo)
+
+B_SBA_pf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_sba_pf_evapo)
+
+C_SBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_sba_pf_evapo)
+
+D_SBA_pf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_sba_pf_evapo)
+
+E_SBA_pf_evapo = lm(Evapo ~ ff_area, data = model_sba_pf_evapo)
+
+F_SBA_pf_evapo = lm(Evapo ~ Ano, data = model_sba_pf_evapo)
+
+G_SBA_pf_evapo = lm(Evapo ~ ff_area + Ano, data = model_sba_pf_evapo)
+
+AIC(A_SBA_pf_evapo,B_SBA_pf_evapo,C_SBA_pf_evapo,D_SBA_pf_evapo,
+    E_SBA_pf_evapo,F_SBA_pf_evapo,G_SBA_pf_evapo)
+BIC(A_SBA_pf_evapo,B_SBA_pf_evapo,C_SBA_pf_evapo,D_SBA_pf_evapo,
+    E_SBA_pf_evapo,F_SBA_pf_evapo,G_SBA_pf_evapo)
+
+## Secondary vegetation
+
+A_SBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_eba_sf_evapo)
+
+B_SBA_sf_evapo = lmerTest::lmer(Evapo ~ Ano +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+C_SBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+D_SBA_sf_evapo = lmerTest::lmer(Evapo ~ 1 +
+             (1|ff_area), data = model_eba_sf_evapo)
+
+E_SBA_sf_evapo = lm(Evapo ~ ff_area, data = model_eba_sf_evapo)
+
+F_SBA_sf_evapo = lm(Evapo ~ Ano, data = model_eba_sf_evapo)
+
+G_SBA_sf_evapo = lm(Evapo ~ ff_area + Ano, data = model_eba_sf_evapo)
+
+AIC(A_SBA_sf_evapo,B_SBA_sf_evapo,C_SBA_sf_evapo,D_SBA_sf_evapo,
+    E_SBA_sf_evapo,F_SBA_sf_evapo,G_SBA_sf_evapo)
+BIC(A_SBA_sf_evapo,B_SBA_sf_evapo,C_SBA_sf_evapo,D_SBA_sf_evapo,
+    E_SBA_sf_evapo,F_SBA_sf_evapo,G_SBA_sf_evapo)
+```
+
 #### Mixed linear regression model to estimate the variable "Evapo" based on the variable "ff_area"
 
 ```{r}
@@ -1401,6 +1845,226 @@ ggsave("fig/predicted_evapotranspiration_SBA.png", bg = "white",
 
 ### Temperature
 
+#### Model choice
+
+```{r}
+
+all_pf_sf_temp_model = read_xlsx("data/all_pf_sf_temp_model.xlsx")
+
+# CBA
+
+## Primary vegetation
+
+model_cba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_temp$type = as.factor(model_cba_pf_temp$type)
+
+## Secondary vegetation
+
+model_cba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_temp$type = as.factor(model_cba_sf_temp$type)
+
+# EBA
+
+## Primary vegetation
+
+model_eba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_temp$type = as.factor(model_eba_pf_temp$type)
+
+## Secondary vegetation
+
+model_eba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_temp$type = as.factor(model_eba_sf_temp$type)
+
+# SBA
+
+## Primary vegetation
+
+model_sba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_temp$type = as.factor(model_sba_pf_temp$type)
+
+## Secondary vegetation
+
+model_sba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_temp$type = as.factor(model_sba_sf_temp$type)
+```
+
+
+```{r}
+
+## CBA
+
+### Primary vegetation
+
+A_CBA_pf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_cba_pf_temp)
+
+B_CBA_pf_temp= lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_cba_pf_temp)
+
+C_CBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_cba_pf_temp)
+
+D_CBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_cba_pf_temp)
+
+E_CBA_pf_temp = lm(Temp ~ ff_area, data = model_cba_pf_temp)
+
+F_CBA_pf_temp = lm(Temp ~ Ano, data = model_cba_pf_temp)
+
+G_CBA_pf_temp = lm(Temp ~ ff_area + Ano, data = model_cba_pf_temp)
+
+AIC(A_CBA_pf_temp,B_CBA_pf_temp,C_CBA_pf_temp,D_CBA_pf_temp,
+    E_CBA_pf_temp,F_CBA_pf_temp,G_CBA_pf_temp)
+BIC(A_CBA_pf_temp,B_CBA_pf_temp,C_CBA_pf_temp,D_CBA_pf_temp,
+    E_CBA_pf_temp,F_CBA_pf_temp,G_CBA_pf_temp)
+
+## Secondary vegetation
+
+A_CBA_sf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_cba_sf_temp)
+
+B_CBA_sf_temp = lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_cba_sf_temp)
+
+C_CBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_cba_sf_temp)
+
+D_CBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_cba_sf_temp)
+
+E_CBA_sf_temp = lm(Temp ~ ff_area, data = model_cba_sf_temp)
+
+F_CBA_sf_temp = lm(Temp ~ Ano, data = model_cba_sf_temp)
+
+G_CBA_sf_temp = lm(Temp ~ ff_area + Ano, data = model_cba_sf_temp)
+
+AIC(A_CBA_sf_temp,B_CBA_sf_temp,C_CBA_sf_temp,D_CBA_sf_temp,
+    E_CBA_sf_temp,F_CBA_sf_temp,G_CBA_sf_temp)
+BIC(A_CBA_sf_temp,B_CBA_sf_temp,C_CBA_sf_temp,D_CBA_sf_temp,
+    E_CBA_sf_temp,F_CBA_sf_temp,G_CBA_sf_temp)
+
+## EBA
+
+### Primary vegetation
+
+A_EBA_pf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_eba_pf_temp)
+
+B_EBA_pf_temp = lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_eba_pf_temp)
+
+C_EBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_pf_temp)
+
+D_EBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_pf_temp)
+
+E_EBA_pf_temp = lm(Temp ~ ff_area, data = model_eba_pf_temp)
+
+F_EBA_pf_temp = lm(Temp ~ Ano, data = model_eba_pf_temp)
+
+G_EBA_pf_temp = lm(Temp ~ ff_area + Ano, data = model_eba_pf_temp)
+
+AIC(A_EBA_pf_temp,B_EBA_pf_temp,C_EBA_pf_temp,D_EBA_pf_temp,
+    E_EBA_pf_temp,F_EBA_pf_temp,G_EBA_pf_temp)
+BIC(A_EBA_pf_temp,B_EBA_pf_temp,C_EBA_pf_temp,D_EBA_pf_temp,
+    E_EBA_pf_temp,F_EBA_pf_temp,G_EBA_pf_temp)
+
+## Secondary vegetation
+
+A_EBA_sf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_eba_sf_temp)
+
+B_EBA_sf_temp = lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_eba_sf_temp)
+
+C_EBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_sf_temp)
+
+D_EBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_sf_temp)
+
+E_EBA_sf_temp = lm(Temp ~ ff_area, data = model_eba_sf_temp)
+
+F_EBA_sf_temp = lm(Temp ~ Ano, data = model_eba_sf_temp)
+
+G_EBA_sf_temp = lm(Temp ~ ff_area + Ano, data = model_eba_sf_temp)
+
+AIC(A_EBA_sf_temp,B_EBA_sf_temp,C_EBA_sf_temp,D_EBA_sf_temp,
+    E_EBA_sf_temp,F_EBA_sf_temp,G_EBA_sf_temp)
+BIC(A_EBA_sf_temp,B_EBA_sf_temp,C_EBA_sf_temp,D_EBA_sf_temp,
+    E_EBA_sf_temp,F_EBA_sf_temp,G_EBA_sf_temp)
+
+## SBA
+
+### Primary vegetation
+
+A_SBA_pf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_sba_pf_temp)
+
+B_SBA_pf_temp = lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_sba_pf_temp)
+
+C_SBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_sba_pf_temp)
+
+D_SBA_pf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_sba_pf_temp)
+
+E_SBA_pf_temp = lm(Temp ~ ff_area, data = model_sba_pf_temp)
+
+F_SBA_pf_temp = lm(Temp ~ Ano, data = model_sba_pf_temp)
+
+G_SBA_pf_temp = lm(Temp ~ ff_area + Ano, data = model_sba_pf_temp)
+
+AIC(A_SBA_pf_temp,B_SBA_pf_temp,C_SBA_pf_temp,D_SBA_pf_temp,
+    E_SBA_pf_temp,F_SBA_pf_temp,G_SBA_pf_temp)
+BIC(A_SBA_pf_temp,B_SBA_pf_temp,C_SBA_pf_temp,D_SBA_pf_temp,
+    E_SBA_pf_temp,F_SBA_pf_temp,G_SBA_pf_temp)
+
+## Secondary vegetation
+
+A_SBA_sf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_eba_sf_temp)
+
+B_SBA_sf_temp = lmerTest::lmer(Temp ~ Ano +
+             (1|ff_area), data = model_eba_sf_temp)
+
+C_SBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_sf_temp)
+
+D_SBA_sf_temp = lmerTest::lmer(Temp ~ 1 +
+             (1|ff_area), data = model_eba_sf_temp)
+
+E_SBA_sf_temp = lm(Temp ~ ff_area, data = model_eba_sf_temp)
+
+F_SBA_sf_temp = lm(Temp ~ Ano, data = model_eba_sf_temp)
+
+G_SBA_sf_temp = lm(Temp ~ ff_area + Ano, data = model_eba_sf_temp)
+
+AIC(A_SBA_sf_temp,B_SBA_sf_temp,C_SBA_sf_temp,D_SBA_sf_temp,
+    E_SBA_sf_temp,F_SBA_sf_temp,G_SBA_sf_temp)
+BIC(A_SBA_sf_temp,B_SBA_sf_temp,C_SBA_sf_temp,D_SBA_sf_temp,
+    E_SBA_sf_temp,F_SBA_sf_temp,G_SBA_sf_temp)
+```
 
 #### Mixed linear regression model to estimate the variable "Temp" based on the variable "ff_area"
 
