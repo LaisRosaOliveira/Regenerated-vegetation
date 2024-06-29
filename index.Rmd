@@ -1,0 +1,3280 @@
+ ---
+title: "Index"
+author: Laís Rosa Oliveira
+format: 
+  html:
+    code-fold: false
+    smooth-scroll: true
+    fig-width: 16
+    fig-height: 10
+    css: styles.css
+    self-contained: true
+    #code-tools:
+      #source: true
+      #toggle: true
+      #caption: "Source code"
+theme: "cosmo"
+toc: true
+toc-location: right
+toc-depth: 10
+fontcolor: "#B06500" # {html} Color of text.
+linkcolor: "#007FFF" # {html, pdf, beamer} Color of link text.
+reference-location: "margin"
+colortheme: "#B06500"
+highlight: monochrome
+warning: false
+cache: true
+---
+
+
+# Modeling the effect that PF and SF area land cover in the climate variables
+
+```{r}
+# install.packages("lme4")
+# install.packages("performance")
+
+library(lme4)
+library(performance)
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(cowplot)
+```
+
+### Precipitation
+
+
+#### Mixed linear regression model to estimate the variable "Prec" based on the variable "ff_area"
+
+#### Fixed effect and p-value
+
+```{r}
+library(DHARMa)
+library(writexl)
+library(merTools)
+library(lmtest)
+
+all_pf_sf_prec_model = read_xlsx("data/all_pf_sf_prec_model.xlsx")
+## Primary vegetation
+
+###### Modeling ######
+
+#CBA
+model_cba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_prec$type = as.factor(model_cba_pf_prec$type)
+
+model_CBA_pf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_cba_pf_prec)
+
+pred <- cbind(model_cba_pf_prec, predictInterval(model_CBA_pf_prec, model_cba_pf_prec))
+
+
+#EBA
+model_eba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_prec$type = as.factor(model_eba_pf_prec$type)
+
+model_EBA_pf_prec = lmerTest::lmer(Prec ~ ff_area+ 
+             (1|Ano), data = model_eba_pf_prec)
+
+
+#SBA
+model_sba_pf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_prec$type = as.factor(model_sba_pf_prec$type)
+
+model_SBA_pf_prec = lmerTest::lmer(Prec ~ ff_area+
+             (1|Ano), data = model_sba_pf_prec)
+
+# Obtendo os efeitos de cada fração de área PF
+summary(model_CBA_pf_prec)
+summary(model_EBA_pf_prec)
+summary(model_SBA_pf_prec)
+
+gc()
+
+#
+BIC(model_CBA_pf_prec)
+BIC(model_EBA_pf_prec)
+BIC(model_SBA_pf_prec)
+
+#
+predict(model_CBA_pf_prec)
+predict(model_EBA_pf_prec)
+predict(model_SBA_pf_prec)
+
+
+gc()
+
+# Obtain the fixed effects
+
+cba_prec_fix = fixef(model_CBA_pf_prec)
+cba_prec_fix = as.data.frame(cba_prec_fix)
+
+eba_prec_fix = fixef(model_EBA_pf_prec)
+eba_prec_fix = as.data.frame(eba_prec_fix)
+
+sba_prec_fix = fixef(model_SBA_pf_prec)
+sba_prec_fix = as.data.frame(sba_prec_fix)
+
+gc()
+
+###### Framework ########
+
+# CBA
+ic_cba_prec = confint(model_CBA_pf_prec)
+ic_cba_prec = as.data.frame(ic_cba_prec)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_prec$parameters = parameters$parameters
+ic_cba_prec = ic_cba_prec |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_prec$fixed_effect = cba_prec_fix$cba_prec_fix
+ic_cba_prec$region = "CBA"
+
+# EBA
+ic_eba_prec = confint(model_EBA_pf_prec)
+ic_eba_prec = as.data.frame(ic_eba_prec)
+
+ic_eba_prec$parameters = parameters$parameters
+
+ic_eba_prec = ic_eba_prec |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_prec$fixed_effect = eba_prec_fix$eba_prec_fix
+ic_eba_prec$region = "EBA"
+
+# SBA
+ic_sba_prec = confint(model_SBA_pf_prec)
+ic_sba_prec = as.data.frame(ic_sba_prec)
+
+ic_sba_prec$parameters = parameters$parameters
+
+ic_sba_prec = ic_sba_prec |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_prec$fixed_effect = sba_prec_fix$sba_prec_fix
+ic_sba_prec$region = "SBA"
+
+
+#
+all_pf = rbind(ic_cba_prec,ic_eba_prec,ic_sba_prec)
+colnames(all_pf) = c("low","high","parameters","fixed_effect","region")
+all_pf$region = as.factor(all_pf$region)
+all_pf$vegetation = "Primary vegetation"
+
+gc()
+
+##Second vegetation
+
+###### Modeling ######
+
+# CBA
+model_cba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_prec$type = as.factor(model_cba_sf_prec$type)
+
+model_CBA_sf_prec = lmerTest::lmer(Prec ~ ff_area +
+             (1|Ano), data = model_cba_sf_prec)
+
+
+# EBA
+model_eba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_prec$type = as.factor(model_eba_sf_prec$type)
+
+model_EBA_sf_prec = lmerTest::lmer(Prec ~ ff_area+ 
+             (1|Ano), data = model_eba_sf_prec)
+
+
+# SBA
+model_sba_sf_prec = all_pf_sf_prec_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_prec$type = as.factor(model_sba_sf_prec$type)
+
+model_SBA_sf_prec = lmerTest::lmer(Prec ~ ff_area+
+             (1|Ano), data = model_sba_sf_prec)
+
+# Obtendo os efeitos de cada fração de área PF
+summary(model_CBA_sf_prec)
+summary(model_EBA_sf_prec)
+summary(model_SBA_sf_prec)
+
+gc()
+
+#
+BIC(model_CBA_sf_prec)
+BIC(model_EBA_sf_prec)
+BIC(model_SBA_sf_prec)
+
+#
+predict(model_CBA_sf_prec)
+predict(model_EBA_sf_prec)
+predict(model_SBA_sf_prec)
+
+
+gc()
+
+# Obtain the Fixed effects
+
+cba_prec_fix_sf = fixef(model_CBA_sf_prec)
+cba_prec_fix_sf = as.data.frame(cba_prec_fix_sf)
+
+eba_prec_fix_sf = fixef(model_EBA_sf_prec)
+eba_prec_fix_sf = as.data.frame(eba_prec_fix_sf)
+
+sba_prec_fix_sf = fixef(model_SBA_sf_prec)
+sba_prec_fix_sf = as.data.frame(sba_prec_fix_sf)
+
+gc()
+
+###### Framework ########
+
+### CBA
+ic_cba_prec_sf = confint(model_CBA_sf_prec)
+ic_cba_prec_sf = as.data.frame(ic_cba_prec_sf)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_prec_sf$parameters = parameters$parameters
+ic_cba_prec_sf = ic_cba_prec_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_prec_sf$fixed_effect = cba_prec_fix_sf$cba_prec_fix_sf
+ic_cba_prec_sf$region = "CBA"
+
+### EBA
+ic_eba_prec_sf = confint(model_EBA_sf_prec)
+ic_eba_prec_sf = as.data.frame(ic_eba_prec_sf)
+
+ic_eba_prec_sf$parameters = parameters$parameters
+
+ic_eba_prec_sf = ic_eba_prec_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_prec_sf$fixed_effect = eba_prec_fix_sf$eba_prec_fix_sf
+ic_eba_prec_sf$region = "EBA"
+
+### SBA
+ic_sba_prec_sf = confint(model_SBA_sf_prec)
+ic_sba_prec_sf = as.data.frame(ic_sba_prec_sf)
+
+ic_sba_prec_sf$parameters = parameters$parameters
+
+ic_sba_prec_sf = ic_sba_prec_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_prec_sf$fixed_effect = sba_prec_fix_sf$sba_prec_fix_sf
+ic_sba_prec_sf$region = "SBA"
+
+#
+all_sf = rbind(ic_cba_prec_sf,ic_eba_prec_sf,ic_sba_prec_sf)
+colnames(all_sf) = c("low","high","parameters","fixed_effect","region")
+
+all_sf$region = as.factor(all_sf$region)
+all_sf$vegetation = "Secondary vegetation"
+
+all_pf_sf_prec = rbind(all_pf,all_sf)
+
+gc()
+
+rm(ic_cba_prec_sf)
+rm(ic_eba_prec_sf)
+rm(ic_sba_prec_sf)
+rm(cba_prec_fix_sf)
+rm(eba_prec_fix_sf)
+rm(sba_prec_fix_sf)
+
+gc()
+
+```
+
+```{r}
+p1_fix = all_pf_sf_prec |> 
+  filter(!parameters == "intercept") |> 
+   ggplot(aes(parameters,fixed_effect, group = vegetation, fill = vegetation))+
+  geom_bar(stat = "identity",position = "dodge", alpha = 0.8)+
+  facet_grid(~region)+
+  ggthemes::theme_few()+
+  #coord_flip()+
+   theme(legend.position = "top",
+         legend.text = element_text(size = 16),
+         text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("blue3","lightskyblue"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  labs(x = "",
+       y = "Precipitation fixed effects",
+       fill = "",
+       color = NULL)
+
+ggsave("fig/histogram_fixed_prec.png", bg = "white", dpi = 600, width = 8.5, height = 5)
+
+```
+
+#### Effect comparasion
+
+```{r}
+library(emmeans)
+
+emm <- emmeans(model_CBA_pf_prec, "ff_area")
+comp <- contrast(emm, method = "pairwise")
+summary(comp)
+```
+
+#### Random effect
+
+```{r}
+
+# Primary vegetation
+
+# CBA
+cba_prec_random_pf = ranef(model_CBA_pf_prec)
+cba_prec_random_pf = as.data.frame(cba_prec_random_pf)
+cba_prec_random_pf$region = "CBA"
+cba_prec_random_pf$type = "Primary vegetation"
+
+# EBA
+eba_prec_random_pf = ranef(model_EBA_pf_prec)
+eba_prec_random_pf = as.data.frame(eba_prec_random_pf)
+eba_prec_random_pf$region = "EBA"
+eba_prec_random_pf$type = "Primary vegetation"
+
+# SBA
+sba_prec_random_pf = ranef(model_SBA_pf_prec)
+sba_prec_random_pf = as.data.frame(sba_prec_random_pf)
+sba_prec_random_pf$region = "SBA"
+sba_prec_random_pf$type = "Primary vegetation"
+
+
+# Second vegetation
+
+# CBA
+cba_prec_random_sf = ranef(model_CBA_sf_prec)
+cba_prec_random_sf = as.data.frame(cba_prec_random_sf)
+cba_prec_random_sf$region = "CBA"
+cba_prec_random_sf$type = "Secondary vegetation"
+
+# EBA
+eba_prec_random_sf = ranef(model_EBA_sf_prec)
+eba_prec_random_sf = as.data.frame(eba_prec_random_sf)
+eba_prec_random_sf$region = "EBA"
+eba_prec_random_sf$type = "Secondary vegetation"
+
+# SBA
+sba_prec_random_sf = ranef(model_SBA_sf_prec)
+sba_prec_random_sf = as.data.frame(sba_prec_random_sf)
+sba_prec_random_sf$region = "SBA"
+sba_prec_random_sf$type = "Secondary vegetation"
+
+#
+all_random = rbind(cba_prec_random_pf,eba_prec_random_pf,sba_prec_random_pf,
+                   cba_prec_random_sf,eba_prec_random_sf,sba_prec_random_sf)
+
+# Plot
+# Ordenar os anos
+all_random <- all_random %>%
+  mutate(grp = factor(grp, levels = unique(grp)))
+
+all_random$grp <- as.numeric(as.character(all_random$grp))
+years_to_display <- seq(min(all_random$grp), max(all_random$grp), by = 3)
+
+# Plot com os anos ordenados
+p1_rand <- all_random |> 
+  ggplot(aes(grp, condval, group = type, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8) +
+  facet_grid(~region) +
+  ggthemes::theme_few() +
+  #coord_flip() +
+  theme(legend.position = "top",
+        legend.text = element_text(size = 16),
+        text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 90, hjust = 1, vjust = 1), 
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("blue3","lightskyblue"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  scale_x_continuous(breaks = seq(min(all_random$grp), max(all_random$grp), by = 1), labels = ifelse(seq(min(all_random$grp), max(all_random$grp), by = 1) %% 3 == 0, seq(min(all_random$grp), max(all_random$grp), by = 1), "")) +
+  labs(x = "",
+       y = "Precipitation random effects",
+       fill = "",
+       color = NULL)
+
+ggsave("fig/histogram_random_prec.png", bg = "white", dpi = 600, width = 12, height = 5)
+
+gc()
+```
+
+#### Predicted
+
+```{r}
+
+library(patchwork)
+# Primary vegetation
+
+model_cba_pf_prec$predicted <- predict(model_CBA_pf_prec, model_cba_pf_prec)
+
+cba_pf = model_cba_pf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_pf_prec$predicted <- predict(model_SBA_pf_prec, model_sba_pf_prec)
+
+sba_pf = model_sba_pf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "SBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+model_eba_pf_prec$predicted <- predict(model_EBA_pf_prec, model_eba_pf_prec)
+
+eba_pf = model_eba_pf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "EBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+# Second vegetation
+
+model_cba_sf_prec$predicted <- predict(model_CBA_sf_prec, model_cba_sf_prec)
+
+cba_sf = model_cba_sf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_eba_sf_prec$predicted <- predict(model_EBA_sf_prec, model_eba_sf_prec)
+
+eba_sf = model_eba_sf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "EBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_sf_prec$predicted <- predict(model_SBA_sf_prec, model_sba_sf_prec)
+
+sba_sf = model_sba_sf_prec |> 
+  ggplot(aes(Prec,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "SBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+p1_pred = (cba_pf+eba_pf+sba_pf+cba_sf+eba_sf+sba_sf)
+
+ggsave("fig/predicted_observed_prec.png", bg = "white", dpi = 600, width = 8.5, height = 6)
+
+gc()
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+# CBA
+
+r2_cba_pf_prec = r2_nakagawa(model_CBA_pf_prec)
+r2_cba_sf_prec = r2_nakagawa(model_CBA_sf_prec)
+
+# EBA
+
+r2_eba_pf_prec = r2_nakagawa(model_EBA_pf_prec)
+r2_eba_sf_prec = r2_nakagawa(model_EBA_sf_prec)
+
+# SBA
+
+r2_sba_pf_prec = r2_nakagawa(model_SBA_pf_prec)
+r2_sba_sf_prec = r2_nakagawa(model_SBA_sf_prec)
+
+gc()
+```
+
+#### Model plotting
+
+##### CBA
+
+```{r}
+model_cba_pf_prec <- cbind(model_cba_pf_prec, predictInterval(model_CBA_pf_prec, model_cba_pf_prec))
+
+model_cba_sf_prec <- cbind(model_cba_sf_prec, predictInterval(model_CBA_sf_prec, model_cba_sf_prec))
+
+model_cba_all_prec = rbind(model_cba_pf_prec,model_cba_sf_prec)
+
+model_cba_all_prec[model_cba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_prec[model_cba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_prec[model_cba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_prec[model_cba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_prec[model_cba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_prec[model_cba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_prec[model_cba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_prec[model_cba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_prec[model_cba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_prec[model_cba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_prec[model_cba_all_prec$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_cba_all_prec[model_cba_all_prec$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_cba_all_prec
+
+gc()
+```
+
+```{r}
+r2_cba_pf_prec
+r2_cba_sf_prec
+
+model_cba_all_prec %>%
+  ggplot(aes(x = area*10, y = Prec))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Prec, color = vegetation)) + 
+  #geom_ribbon(aes(area*10, ymin = lwr, ymax = upr, color = vegetation, fill = vegetation), linetype = 2, alpha = .1)+
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) + 
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Predicted precipitation (mm) - CBA",
+       color = "",
+       title = "R²: 0.991 (PV) | 0.975 (SV)")+
+       #subtitle = "CBA")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 12))
+  
+
+ic_cba_prec
+ggsave("fig/predicted_precipitation_CBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+```
+
+##### EBA
+
+```{r}
+
+
+model_eba_all_prec = rbind(model_eba_pf_prec,model_eba_sf_prec)
+
+model_eba_all_prec[model_eba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_prec[model_eba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_prec[model_eba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_prec[model_eba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_prec[model_eba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_prec[model_eba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_prec[model_eba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_prec[model_eba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_prec[model_eba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_prec[model_eba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_prec[model_eba_all_prec$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_eba_all_prec[model_eba_all_prec$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_eba_all_prec
+```
+
+```{r}
+r2_eba_pf_prec
+r2_eba_sf_prec
+
+model_eba_all_prec %>%
+  ggplot(aes(x = area*10, y = Prec))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Prec, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Predicted precipitation (mm) - EBA",
+       color = "",
+       title = "R²: 0.967 (PV) | 0.983 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 12))
+
+ggsave("fig/predicted_precipitation_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+
+pred1 <- cbind(model_cba_pf_prec, predictInterval(model_CBA_pf_prec, model_cba_pf_prec))
+
+pred2 <- cbind(model_cba_sf_prec, predictInterval(model_CBA_pf_prec, model_cba_sf_prec))
+```
+
+##### SBA
+
+```{r}
+model_sba_all_prec = rbind(model_sba_pf_prec,model_sba_sf_prec)
+
+model_sba_all_prec[model_sba_all_prec$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_prec[model_sba_all_prec$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_prec[model_sba_all_prec$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_prec[model_sba_all_prec$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_prec[model_sba_all_prec$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_prec[model_sba_all_prec$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_prec[model_sba_all_prec$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_prec[model_sba_all_prec$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_prec[model_sba_all_prec$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_prec[model_sba_all_prec$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_prec[model_sba_all_prec$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_sba_all_prec[model_sba_all_prec$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_sba_all_prec
+```
+
+```{r}
+r2_sba_pf_prec
+r2_sba_sf_prec
+
+model_sba_all_prec %>%
+  ggplot(aes(x = area*10, y = Prec))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Prec, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "darkgreen", "Secondary Vegetation" = "green3")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Predicted precipitation (mm) - SBA",
+       color = "",
+       title = "R²: 0.988 (PV) | 0.977 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+        legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 12, face = "bold"))
+
+ggsave("fig/predicted_precipitation_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+### Evapotranspiration
+
+#### Mixed linear regression model to estimate the variable "Evapo" based on the variable "ff_area"
+
+```{r}
+
+library(DHARMa)
+library(writexl)
+
+all_pf_sf_evapo_model = read_xlsx("data/all_pf_sf_evapo_model.xlsx")
+
+## Primary vegetation
+
+###### Modeling ######
+
+#CBA
+model_cba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_evapo$type = as.factor(model_cba_pf_evapo$type)
+
+model_CBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_cba_pf_evapo)
+
+
+#EBA
+model_eba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_evapo$type = as.factor(model_eba_pf_evapo$type)
+
+model_EBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area+ 
+             (1|Ano), data = model_eba_pf_evapo)
+
+
+#SBA
+model_sba_pf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_evapo$type = as.factor(model_sba_pf_evapo$type)
+
+model_SBA_pf_evapo = lmerTest::lmer(Evapo ~ ff_area+
+             (1|Ano), data = model_sba_pf_evapo)
+
+# Obtendo os efeitos de cada fração de área
+summary(model_CBA_pf_evapo)
+summary(model_EBA_pf_evapo)
+summary(model_SBA_pf_evapo)
+
+gc()
+
+#
+BIC(model_CBA_pf_evapo)
+BIC(model_EBA_pf_evapo)
+BIC(model_SBA_pf_evapo)
+
+#
+predict(model_CBA_pf_evapo)
+predict(model_EBA_pf_evapo)
+predict(model_SBA_pf_evapo)
+
+gc()
+
+#fixed effects
+
+cba_evapo_fix = fixef(model_CBA_pf_evapo)
+cba_evapo_fix = as.data.frame(cba_evapo_fix)
+
+sba_evapo_fix = fixef(model_SBA_pf_evapo)
+sba_evapo_fix = as.data.frame(sba_evapo_fix)
+
+eba_evapo_fix = fixef(model_EBA_pf_evapo)
+eba_evapo_fix = as.data.frame(eba_evapo_fix)
+
+gc()
+
+###### Framework ########
+
+# CBA
+
+ic_cba_evapo = confint(model_CBA_pf_evapo)
+ic_cba_evapo = as.data.frame(ic_cba_evapo)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_evapo$parameters = parameters$parameters
+ic_cba_evapo = ic_cba_evapo |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_evapo$fixed_effect = cba_evapo_fix$cba_evapo_fix
+ic_cba_evapo$region = "CBA"
+
+# EBA
+
+ic_eba_evapo = confint(model_EBA_pf_evapo)
+ic_eba_evapo = as.data.frame(ic_eba_evapo)
+
+ic_eba_evapo$parameters = parameters$parameters
+
+ic_eba_evapo = ic_eba_evapo |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_evapo$fixed_effect = eba_evapo_fix$eba_evapo_fix
+ic_eba_evapo$region = "EBA"
+
+# SBA
+
+ic_sba_evapo = confint(model_SBA_pf_evapo)
+ic_sba_evapo = as.data.frame(ic_sba_evapo)
+
+ic_sba_evapo$parameters = parameters$parameters
+
+ic_sba_evapo = ic_sba_evapo |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_evapo$fixed_effect = sba_evapo_fix$sba_evapo_fix
+ic_sba_evapo$region = "SBA"
+
+#
+all_pf = rbind(ic_cba_evapo,ic_sba_evapo,ic_eba_evapo)
+colnames(all_pf) = c("low","high","parameters","fixed_effect","region")
+all_pf$region = as.factor(all_pf$region)
+all_pf$vegetation = "Primary vegetation"
+
+
+##Second vegetation
+
+###### Modeling ######
+
+#CBA
+model_cba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_evapo$type = as.factor(model_cba_sf_evapo$type)
+
+model_CBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area +
+             (1|Ano), data = model_cba_sf_evapo)
+
+
+#EBA
+model_eba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_evapo$type = as.factor(model_eba_sf_evapo$type)
+
+model_EBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area+ 
+             (1|Ano), data = model_eba_sf_evapo)
+
+
+#SBA
+model_sba_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_evapo$type = as.factor(model_sba_sf_evapo$type)
+
+model_SBA_sf_evapo = lmerTest::lmer(Evapo ~ ff_area+
+             (1|Ano), data = model_sba_sf_evapo)
+
+# Fixed effects
+
+cba_evapo_fix_sf = fixef(model_CBA_sf_evapo)
+cba_evapo_fix_sf = as.data.frame(cba_evapo_fix_sf)
+
+eba_evapo_fix_sf = fixef(model_EBA_sf_evapo)
+eba_evapo_fix_sf = as.data.frame(eba_evapo_fix_sf)
+
+sba_evapo_fix_sf = fixef(model_SBA_sf_evapo)
+sba_evapo_fix_sf = as.data.frame(sba_evapo_fix_sf)
+
+gc()
+
+###### Framework ########
+
+# CBA
+ic_cba_evapo_sf = confint(model_CBA_sf_evapo)
+ic_cba_evapo_sf = as.data.frame(ic_cba_evapo_sf)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_evapo_sf$parameters = parameters$parameters
+ic_cba_evapo_sf = ic_cba_evapo_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_evapo_sf$fixed_effect = cba_evapo_fix_sf$cba_evapo_fix_sf
+ic_cba_evapo_sf$region = "CBA"
+
+# EBA
+ic_eba_evapo_sf = confint(model_EBA_sf_evapo)
+ic_eba_evapo_sf = as.data.frame(ic_eba_evapo_sf)
+
+ic_eba_evapo_sf$parameters = parameters$parameters
+
+ic_eba_evapo_sf = ic_eba_evapo_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_evapo_sf$fixed_effect = eba_evapo_fix_sf$eba_evapo_fix_sf
+ic_eba_evapo_sf$region = "EBA"
+
+# SBA
+ic_sba_evapo_sf = confint(model_SBA_sf_evapo)
+ic_sba_evapo_sf = as.data.frame(ic_sba_evapo_sf)
+
+ic_sba_evapo_sf$parameters = parameters$parameters
+
+ic_sba_evapo_sf = ic_sba_evapo_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_evapo_sf$fixed_effect = sba_evapo_fix_sf$sba_evapo_fix_sf
+ic_sba_evapo_sf$region = "SBA"
+
+#
+all_sf = rbind(ic_cba_evapo_sf,ic_sba_evapo_sf,ic_eba_evapo_sf)
+colnames(all_sf) = c("low","high","parameters","fixed_effect","region")
+all_sf$region = as.factor(all_sf$region)
+all_sf$vegetation = "Secondary vegetation"
+all_pf
+
+all_pf_sf_evapo = rbind(all_pf,all_sf)
+
+gc()
+```
+
+#### Fixed effect
+
+```{r}
+p2_fix = all_pf_sf_evapo |> 
+  filter(!parameters == "intercept") |> 
+   ggplot(aes(parameters,fixed_effect, group = vegetation, fill = vegetation))+
+  geom_bar(stat = "identity",position = "dodge", alpha = 0.8)+
+  facet_grid(~region)+
+  ggthemes::theme_few()+
+  #coord_flip()+
+   theme(legend.position = "top",
+         legend.text = element_text(size = 16),
+         text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), 
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("forestgreen","palegreen"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  labs(x = "",
+       y = "Evapotranspiration fixed effects",
+       fill = "",
+       color = NULL)
+
+ggsave("fig/histogram_fixed_evapo.png", bg = "white", dpi = 600, width = 8.5, height = 5)
+```
+
+#### Random effect
+
+```{r}
+
+# Primary vegetation
+
+# CBA
+cba_evapo_random_pf = ranef(model_CBA_pf_evapo)
+cba_evapo_random_pf = as.data.frame(cba_evapo_random_pf)
+cba_evapo_random_pf$region = "CBA"
+cba_evapo_random_pf$type = "Primary vegetation"
+
+# EBA
+eba_evapo_random_pf = ranef(model_EBA_pf_evapo)
+eba_evapo_random_pf = as.data.frame(eba_evapo_random_pf)
+eba_evapo_random_pf$region = "EBA"
+eba_evapo_random_pf$type = "Primary vegetation"
+
+# SBA
+sba_evapo_random_pf = ranef(model_SBA_pf_evapo)
+sba_evapo_random_pf = as.data.frame(sba_evapo_random_pf)
+sba_evapo_random_pf$region = "SBA"
+sba_evapo_random_pf$type = "Primary vegetation"
+
+
+
+# Second vegetation
+
+# CBA
+cba_evapo_random_sf = ranef(model_CBA_sf_evapo)
+cba_evapo_random_sf = as.data.frame(cba_evapo_random_sf)
+cba_evapo_random_sf$region = "CBA"
+cba_evapo_random_sf$type = "Secondary vegetation"
+
+
+# EBA
+eba_evapo_random_sf = ranef(model_EBA_sf_evapo)
+eba_evapo_random_sf = as.data.frame(eba_evapo_random_sf)
+eba_evapo_random_sf$region = "EBA"
+eba_evapo_random_sf$type = "Secondary vegetation"
+
+# SBA
+sba_evapo_random_sf = ranef(model_SBA_sf_evapo)
+sba_evapo_random_sf = as.data.frame(sba_evapo_random_sf)
+sba_evapo_random_sf$region = "SBA"
+sba_evapo_random_sf$type = "Secondary vegetation"
+
+#
+all_random = rbind(cba_evapo_random_pf,eba_evapo_random_pf,sba_evapo_random_pf,
+                   cba_evapo_random_sf,eba_evapo_random_sf,sba_evapo_random_sf)
+
+# Plot
+# Ordenar os anos
+all_random <- all_random %>%
+  mutate(grp = factor(grp, levels = unique(grp)))
+
+all_random$grp <- as.numeric(as.character(all_random$grp))
+years_to_display <- seq(min(all_random$grp), max(all_random$grp), by = 3)
+
+# Plot com os anos ordenados
+p2_rand <- all_random |> 
+  ggplot(aes(grp, condval, group = type, fill = type)) +
+  geom_bar(stat = "identity",position = "dodge", alpha = 0.8)+
+  facet_grid(~region)+
+  ggthemes::theme_few()+
+  #coord_flip()+
+   theme(legend.position = "top",
+        legend.text = element_text(size = 16),
+        text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 90, hjust = 1, vjust = 1), 
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("forestgreen","palegreen"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  scale_x_continuous(breaks = seq(min(all_random$grp), max(all_random$grp), by = 1), labels = ifelse(seq(min(all_random$grp), max(all_random$grp), by = 1) %% 3 == 0, seq(min(all_random$grp), max(all_random$grp), by = 1), "")) +
+  labs(x = "",
+       y = "Evapotranspiration random effects",
+       fill = "",
+       color = NULL)
+
+ggsave("fig/histogram_random_evapo.png", bg = "white", dpi = 600, width = 12, height = 5)
+```
+
+#### Predicted
+
+```{r}
+
+library(patchwork)
+# Primary vegetation
+
+model_cba_pf_evapo$predicted <- predict(model_CBA_pf_evapo, model_cba_pf_evapo)
+
+cba_pf = model_cba_pf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(legend.position = "top",
+         legend.text = element_text(size = 16),
+         text = element_text(size = 16, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_pf_evapo$predicted <- predict(model_SBA_pf_evapo, model_sba_pf_evapo)
+
+sba_pf = model_sba_pf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "SBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+model_eba_pf_evapo$predicted <- predict(model_EBA_pf_evapo, model_eba_pf_evapo)
+
+eba_pf = model_eba_pf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "EBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+# Second vegetation
+
+model_cba_sf_evapo$predicted <- predict(model_CBA_sf_evapo, model_cba_sf_evapo)
+
+cba_sf = model_cba_sf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_sf_evapo$predicted <- predict(model_SBA_sf_evapo, model_sba_sf_evapo)
+
+sba_sf = model_sba_sf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "SBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+model_eba_sf_evapo$predicted <- predict(model_EBA_sf_evapo, model_eba_sf_evapo)
+
+eba_sf = model_eba_sf_evapo |> 
+  ggplot(aes(Evapo,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "EBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+p2_pred = (cba_pf+eba_pf+sba_pf+cba_sf+eba_sf+sba_sf)
+
+ggsave("fig/predicted_observed_evapo.png", bg = "white", dpi = 600, width = 8.5, height = 6)
+
+gc()
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+# CBA
+
+r2_cba_pf_evapo = r2_nakagawa(model_CBA_pf_evapo)
+r2_cba_sf_evapo = r2_nakagawa(model_CBA_sf_evapo)
+
+# EBA
+
+r2_eba_pf_evapo = r2_nakagawa(model_EBA_pf_evapo)
+r2_eba_sf_evapo = r2_nakagawa(model_EBA_sf_evapo)
+
+# SBA
+
+r2_sba_pf_evapo = r2_nakagawa(model_SBA_pf_evapo)
+r2_sba_sf_evapo = r2_nakagawa(model_SBA_sf_evapo)
+
+gc()
+```
+
+#### Model plotting
+
+##### CBA
+
+```{r}
+model_cba_all_evapo = rbind(model_cba_pf_evapo,model_cba_sf_evapo)
+
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_evapo[model_cba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_evapo[model_cba_all_evapo$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_cba_all_evapo[model_cba_all_evapo$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_cba_all_evapo
+```
+
+```{r}
+r2_cba_pf_evapo
+r2_cba_sf_evapo
+model_cba_all_evapo %>%
+  ggplot(aes(x = area*10, y = Evapo))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Evapo, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) + 
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Predicted evapotranspiration (mm) - CBA",
+       color = "",
+       title = "R²: 0.975 (PV) | 0.919 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"))
+
+ggsave("fig/predicted_evapotranspiration_CBA.png", bg = "white", dpi = 600, width = 10, height = 8)
+```
+
+##### EBA
+
+```{r}
+model_eba_all_evapo = rbind(model_eba_pf_evapo,model_eba_sf_evapo)
+
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_evapo[model_eba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_evapo[model_eba_all_evapo$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_eba_all_evapo[model_eba_all_evapo$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_eba_all_evapo
+```
+
+```{r}
+r2_eba_pf_evapo
+r2_eba_sf_evapo
+
+model_eba_all_evapo %>%
+  ggplot(aes(x = area*10, y = Evapo))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Evapo, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Predicted evapotranspiration (mm) - EBA",
+       color = "",
+       title = "R²: 0.900 (PV) | 0.972 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 12),
+         legend.text = element_text(size = 12, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 12),
+    title = element_text(size = 12, face = "bold"))
+
+ggsave("fig/predicted_evapotranspiration_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+##### SBA
+
+```{r}
+model_sba_all_evapo = rbind(model_sba_pf_evapo,model_sba_sf_evapo)
+
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_evapo[model_sba_all_evapo$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_evapo[model_sba_all_evapo$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_sba_all_evapo[model_sba_all_evapo$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_sba_all_evapo
+```
+
+```{r}
+r2_sba_pf_evapo
+r2_sba_sf_evapo
+
+model_sba_all_evapo %>%
+  ggplot(aes(x = area*10, y = Evapo))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Evapo, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixlel area covered with vegetation (%)", y = "Predicted evapotranspiration (mm) - SBA",
+       color = "",
+       title = "R²: 0.842 (PV) | 0.980 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"))
+
+ggsave("fig/predicted_evapotranspiration_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+### Temperature
+
+
+#### Mixed linear regression model to estimate the variable "Temp" based on the variable "ff_area"
+
+```{r}
+
+library(DHARMa)
+library(writexl)
+
+all_pf_sf_temp_model = read_xlsx("data/all_pf_sf_temp_model.xlsx")
+
+## Primary vegetation
+
+###### Modeling ######
+
+#CBA
+model_cba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 1)
+
+model_cba_pf_temp$type = as.factor(model_cba_pf_temp$type)
+
+model_CBA_pf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_cba_pf_temp)
+
+
+#EBA
+model_eba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 1)
+
+model_eba_pf_temp$type = as.factor(model_eba_pf_temp$type)
+
+model_EBA_pf_temp = lmerTest::lmer(Temp ~ ff_area+ 
+             (1|Ano), data = model_eba_pf_temp)
+
+
+#SBA
+model_sba_pf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 1)
+
+model_sba_pf_temp$type = as.factor(model_sba_pf_temp$type)
+
+model_SBA_pf_temp = lmerTest::lmer(Temp ~ ff_area+
+             (1|Ano), data = model_sba_pf_temp)
+
+# Obtendo os efeitos de cada fração de área
+summary(model_CBA_pf_temp)
+summary(model_EBA_pf_temp)
+summary(model_SBA_pf_temp)
+
+gc()
+
+#
+BIC(model_CBA_pf_temp)
+BIC(model_EBA_pf_temp)
+BIC(model_SBA_pf_temp)
+
+#
+predict(model_CBA_pf_temp)
+predict(model_EBA_pf_temp)
+predict(model_SBA_pf_temp)
+
+gc()
+
+#fixed effects
+
+cba_temp_fix = fixef(model_CBA_pf_temp)
+cba_temp_fix = as.data.frame(cba_temp_fix)
+
+sba_temp_fix = fixef(model_SBA_pf_temp)
+sba_temp_fix = as.data.frame(sba_temp_fix)
+
+eba_temp_fix = fixef(model_EBA_pf_temp)
+eba_temp_fix = as.data.frame(eba_temp_fix)
+
+gc()
+
+###### Framework ########
+
+# CBA
+
+ic_cba_temp = confint(model_CBA_pf_temp)
+ic_cba_temp = as.data.frame(ic_cba_temp)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_temp$parameters = parameters$parameters
+ic_cba_temp = ic_cba_temp |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_temp$fixed_effect = cba_temp_fix$cba_temp_fix
+ic_cba_temp$region = "CBA"
+
+# EBA
+
+ic_eba_temp = confint(model_EBA_pf_temp)
+ic_eba_temp = as.data.frame(ic_eba_temp)
+
+ic_eba_temp$parameters = parameters$parameters
+
+ic_eba_temp = ic_eba_temp |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_temp$fixed_effect = eba_temp_fix$eba_temp_fix
+ic_eba_temp$region = "EBA"
+
+# SBA
+
+ic_sba_temp = confint(model_SBA_pf_temp)
+ic_sba_temp = as.data.frame(ic_sba_temp)
+
+ic_sba_temp$parameters = parameters$parameters
+
+ic_sba_temp = ic_sba_temp |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_temp$fixed_effect = sba_temp_fix$sba_temp_fix
+ic_sba_temp$region = "SBA"
+
+#
+all_pf = rbind(ic_cba_temp,ic_sba_temp,ic_eba_temp)
+colnames(all_pf) = c("low","high","parameters","fixed_effect","region")
+all_pf$region = as.factor(all_pf$region)
+all_pf$vegetation = "Primary vegetation"
+
+
+##Second vegetation
+
+###### Modeling ######
+
+#CBA
+model_cba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "CBA") %>% 
+  filter(type == 2)
+
+model_cba_sf_temp$type = as.factor(model_cba_sf_temp$type)
+
+model_CBA_sf_temp = lmerTest::lmer(Temp ~ ff_area +
+             (1|Ano), data = model_cba_sf_temp)
+
+
+#EBA
+model_eba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "EBA") %>% 
+  filter(type == 2)
+
+model_eba_sf_temp$type = as.factor(model_eba_sf_temp$type)
+
+model_EBA_sf_temp = lmerTest::lmer(Temp ~ ff_area+ 
+             (1|Ano), data = model_eba_sf_temp)
+
+
+#SBA
+model_sba_sf_temp = all_pf_sf_temp_model %>% 
+  filter(region == "SBA") %>% 
+  filter(type == 2)
+
+model_sba_sf_temp$type = as.factor(model_sba_sf_temp$type)
+
+model_SBA_sf_temp = lmerTest::lmer(Temp ~ ff_area+
+             (1|Ano), data = model_sba_sf_temp)
+
+# Fixed effects
+
+cba_temp_fix_sf = fixef(model_CBA_sf_temp)
+cba_temp_fix_sf = as.data.frame(cba_temp_fix_sf)
+
+eba_temp_fix_sf = fixef(model_EBA_sf_temp)
+eba_temp_fix_sf = as.data.frame(eba_temp_fix_sf)
+
+sba_temp_fix_sf = fixef(model_SBA_sf_temp)
+sba_temp_fix_sf = as.data.frame(sba_temp_fix_sf)
+
+gc()
+
+###### Framework ########
+
+### CBA
+
+ic_cba_temp_sf = confint(model_CBA_sf_temp)
+ic_cba_temp_sf = as.data.frame(ic_cba_temp_sf)
+
+parameters = c("sig1","sigma","intercept","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100")
+parameters = as.data.frame(parameters)
+
+ic_cba_temp_sf$parameters = parameters$parameters
+ic_cba_temp_sf = ic_cba_temp_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+       
+ic_cba_temp_sf$fixed_effect = cba_temp_fix_sf$cba_temp_fix_sf
+ic_cba_temp_sf$region = "CBA"
+
+### EBA
+
+ic_eba_temp_sf = confint(model_EBA_sf_temp)
+ic_eba_temp_sf = as.data.frame(ic_eba_temp_sf)
+
+ic_eba_temp_sf$parameters = parameters$parameters
+
+ic_eba_temp_sf = ic_eba_temp_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_eba_temp_sf$fixed_effect = eba_temp_fix_sf$eba_temp_fix_sf
+ic_eba_temp_sf$region = "EBA"
+
+### SBA
+
+ic_sba_temp_sf = confint(model_SBA_sf_temp)
+ic_sba_temp_sf = as.data.frame(ic_sba_temp_sf)
+
+ic_sba_temp_sf$parameters = parameters$parameters
+
+ic_sba_temp_sf = ic_sba_temp_sf |> 
+filter(!parameters %in% c("sig1","sigma"))
+
+ic_sba_temp_sf$fixed_effect = sba_temp_fix_sf$sba_temp_fix_sf
+ic_sba_temp_sf$region = "SBA"
+
+#
+all_sf = rbind(ic_cba_temp_sf,ic_sba_temp_sf,ic_eba_temp_sf)
+colnames(all_sf) = c("low","high","parameters","fixed_effect","region")
+all_sf$region = as.factor(all_sf$region)
+all_sf$vegetation = "Secondary vegetation"
+all_pf
+
+all_pf_sf_temp = rbind(all_pf,all_sf)
+
+gc()
+```
+
+#### Fixed effect
+
+```{r}
+p3_fix = all_pf_sf_temp |> 
+  filter(!parameters == "intercept") |> 
+   ggplot(aes(parameters,fixed_effect, group = vegetation, fill = vegetation))+
+  geom_bar(stat = "identity",position = "dodge", alpha = 0.8)+
+  facet_grid(~region)+
+  ggthemes::theme_few()+
+  #coord_flip()+
+  theme(legend.position = "top",
+        legend.text = element_text(size = 16),
+         text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), 
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("darkorange3","sandybrown"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+  labs(x = "Pixel area occupation (%)",
+       y = "Temperature fixed effects",
+       fill = "",
+       color = NULL)
+  
+ggsave("fig/histogram_fixed_temp.png", bg = "white", dpi = 600, width = 8.5, height = 5)
+
+gc()
+```
+
+#### Random effect
+
+```{r}
+
+# Primary vegetation
+
+# CBA
+cba_temp_random_pf = ranef(model_CBA_pf_temp)
+cba_temp_random_pf = as.data.frame(cba_temp_random_pf)
+cba_temp_random_pf$region = "CBA"
+cba_temp_random_pf$type = "Primary vegetation"
+
+# EBA
+eba_temp_random_pf = ranef(model_EBA_pf_temp)
+eba_temp_random_pf = as.data.frame(eba_temp_random_pf)
+eba_temp_random_pf$region = "EBA"
+eba_temp_random_pf$type = "Primary vegetation"
+
+# SBA
+sba_temp_random_pf = ranef(model_SBA_pf_temp)
+sba_temp_random_pf = as.data.frame(sba_temp_random_pf)
+sba_temp_random_pf$region = "SBA"
+sba_temp_random_pf$type = "Primary vegetation"
+
+
+# Second vegetation
+
+# CBA
+cba_temp_random_sf = ranef(model_CBA_sf_temp)
+cba_temp_random_sf = as.data.frame(cba_temp_random_sf)
+cba_temp_random_sf$region = "CBA"
+cba_temp_random_sf$type = "Secondary vegetation"
+
+# EBA
+eba_temp_random_sf = ranef(model_EBA_sf_temp)
+eba_temp_random_sf = as.data.frame(eba_temp_random_sf)
+eba_temp_random_sf$region = "EBA"
+eba_temp_random_sf$type = "Secondary vegetation"
+
+# SBA
+sba_temp_random_sf = ranef(model_SBA_sf_temp)
+sba_temp_random_sf = as.data.frame(sba_temp_random_sf)
+sba_temp_random_sf$region = "SBA"
+sba_temp_random_sf$type = "Secondary vegetation"
+
+#
+all_random = rbind(cba_temp_random_pf,eba_temp_random_pf,sba_temp_random_pf,
+                   cba_temp_random_sf,eba_temp_random_sf,sba_temp_random_sf)
+
+# Plot
+# Ordenar os anos
+all_random <- all_random %>%
+  mutate(grp = factor(grp, levels = unique(grp)))
+
+all_random$grp <- as.numeric(as.character(all_random$grp))
+years_to_display <- seq(min(all_random$grp), max(all_random$grp), by = 3)
+
+# Plot com os anos ordenados
+p3_rand <- all_random |> 
+  ggplot(aes(grp, condval, group = type, fill = type)) +
+  geom_bar(stat = "identity",position = "dodge", alpha = 0.8)+
+  facet_grid(~region)+
+  ggthemes::theme_few()+
+  #coord_flip()+
+  theme(legend.position = "top",
+        legend.text = element_text(size = 16),
+        text = element_text(size = 16, face = "bold", family = "serif"),
+         axis.text.x = element_text(angle = 90,hjust = 1, vjust = 1), 
+         axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"))+
+  scale_fill_manual(values = c("darkorange3","sandybrown"), name = NULL,  labels = c("Primary Vegetation           ", "Secondary Vegetation"))+
+   scale_x_continuous(breaks = seq(min(all_random$grp), max(all_random$grp), by = 1), labels = ifelse(seq(min(all_random$grp), max(all_random$grp), by = 1) %% 3 == 0, seq(min(all_random$grp), max(all_random$grp), by = 1), "")) +
+  labs(x = "",
+       y = "Temperature random effects",
+       fill = "",
+       color = NULL)
+
+ggsave("fig/histogram_random_temp.png", bg = "white", dpi = 600, width = 12, height = 5)
+
+gc()
+```
+
+#### Predicted
+
+```{r}
+
+library(patchwork)
+# Primary vegetation
+
+model_cba_pf_temp$predicted <- predict(model_CBA_pf_temp, model_cba_pf_temp)
+
+cba_pf = model_cba_pf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_pf_temp$predicted <- predict(model_SBA_pf_temp, model_sba_pf_temp)
+
+sba_pf = model_sba_pf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "SBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+model_eba_pf_temp$predicted <- predict(model_EBA_pf_temp, model_eba_pf_temp)
+
+eba_pf = model_eba_pf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "",
+       y = "",
+       title = "EBA",
+       subtitle = "Primary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+# Second vegetation
+
+model_cba_sf_temp$predicted <- predict(model_CBA_sf_temp, model_cba_sf_temp)
+
+cba_sf = model_cba_sf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "Predicted",
+       title = "CBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+model_sba_sf_temp$predicted <- predict(model_SBA_sf_temp, model_sba_sf_temp)
+
+sba_sf = model_sba_sf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "SBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+model_eba_sf_temp$predicted <- predict(model_EBA_sf_temp, model_eba_sf_temp)
+
+eba_sf = model_eba_sf_temp |> 
+  ggplot(aes(Temp,predicted))+
+  geom_point(size = 2, alpha = .7)+
+  geom_smooth(method = "lm", se = F, color = "orange")+
+  theme_minimal()+
+  theme(text = element_text(size = 14, face = "bold", family = "serif"),
+        axis.title.y = element_text(margin = margin(r = 10)))+
+  labs(x = "Observed",
+       y = "",
+       title = "EBA",
+       subtitle = "Secondary vegetation") +
+  theme(plot.subtitle = element_text(size = 14, face = "plain", family = "serif"))
+
+
+p3_pred = (cba_pf+eba_pf+sba_pf+cba_sf+eba_sf+sba_sf)
+
+ggsave("fig/predicted_observed_temp.png", bg = "white", dpi = 600, width = 8.5, height = 6)
+
+gc()
+```
+
+#### R-square for Linear Mixed Model (LMM)
+
+```{r}
+# CBA
+
+r2_cba_pf_temp = r2_nakagawa(model_CBA_pf_temp)
+r2_cba_sf_temp = r2_nakagawa(model_CBA_sf_temp)
+
+# EBA
+
+r2_eba_pf_temp = r2_nakagawa(model_EBA_pf_temp)
+r2_eba_sf_temp = r2_nakagawa(model_EBA_sf_temp)
+
+# SBA
+
+r2_sba_pf_temp = r2_nakagawa(model_SBA_pf_temp)
+r2_sba_sf_temp = r2_nakagawa(model_SBA_sf_temp)
+
+gc()
+```
+
+#### Model plotting
+
+##### CBA
+
+```{r}
+model_cba_all_temp = rbind(model_cba_pf_temp,model_cba_sf_temp)
+
+model_cba_all_temp[model_cba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_cba_all_temp[model_cba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_cba_all_temp[model_cba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_cba_all_temp[model_cba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_cba_all_temp[model_cba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_cba_all_temp[model_cba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_cba_all_temp[model_cba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_cba_all_temp[model_cba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_cba_all_temp[model_cba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_cba_all_temp[model_cba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_cba_all_temp[model_cba_all_temp$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_cba_all_temp[model_cba_all_temp$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_cba_all_temp
+```
+
+```{r}
+r2_cba_pf_temp
+r2_cba_sf_temp
+
+model_cba_all_temp %>%
+  ggplot(aes(x = area*10, y = Temp))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Temp, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Average temperature (°C) - CBA",
+       color = "",
+       title = "R²: 0.975 (PV) | 0.919 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14,face = "bold"))
+
+ggsave("fig/predicted_temperature_CBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+##### EBA
+
+```{r}
+model_eba_all_temp = rbind(model_eba_pf_temp,model_eba_sf_temp)
+
+model_eba_all_temp[model_eba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_eba_all_temp[model_eba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_eba_all_temp[model_eba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_eba_all_temp[model_eba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_eba_all_temp[model_eba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_eba_all_temp[model_eba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_eba_all_temp[model_eba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_eba_all_temp[model_eba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_eba_all_temp[model_eba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_eba_all_temp[model_eba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_eba_all_temp[model_eba_all_temp$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_eba_all_temp[model_eba_all_temp$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_eba_all_temp
+```
+
+```{r}
+r2_eba_pf_temp
+r2_eba_sf_temp
+
+model_eba_all_temp %>%
+  ggplot(aes(x = area*10, y = Temp))+
+  theme_bw()+
+  #ggthemes::theme_few()+
+  geom_point(aes(x = area*10, y = Temp, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Average temperature (°C) - EBA",
+       color = "",
+       title = "R²: 0.997 (PV) | 0.995 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"))
+
+ggsave("fig/predicted_temperature_EBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+##### SBA
+
+```{r}
+model_sba_all_temp = rbind(model_sba_pf_temp,model_sba_sf_temp)
+
+model_sba_all_temp[model_sba_all_temp$ff_area== "1-10",
+                     c("area")]<-1
+model_sba_all_temp[model_sba_all_temp$ff_area== "10-20",
+                     c("area")]<-2
+model_sba_all_temp[model_sba_all_temp$ff_area== "20-30",
+                     c("area")]<-3
+model_sba_all_temp[model_sba_all_temp$ff_area== "30-40",
+                     c("area")]<-4
+model_sba_all_temp[model_sba_all_temp$ff_area== "40-50",
+                     c("area")]<-5
+model_sba_all_temp[model_sba_all_temp$ff_area== "50-60",
+                     c("area")]<-6
+model_sba_all_temp[model_sba_all_temp$ff_area== "60-70",
+                     c("area")]<-7
+model_sba_all_temp[model_sba_all_temp$ff_area== "70-80",
+                     c("area")]<-8
+model_sba_all_temp[model_sba_all_temp$ff_area== "80-90",
+                     c("area")]<-9
+model_sba_all_temp[model_sba_all_temp$ff_area== "90-100",
+                     c("area")]<-10
+
+model_sba_all_temp[model_sba_all_temp$type== 1,
+                     c("vegetation")]<-"Primary Vegetation"
+model_sba_all_temp[model_sba_all_temp$type== 2,
+                     c("vegetation")]<-"Secondary Vegetation"
+
+model_sba_all_temp
+```
+
+```{r}
+r2_sba_pf_temp
+r2_sba_sf_temp
+
+model_sba_all_temp %>%
+  ggplot(aes(x = area*10, y = Temp))+
+  theme_bw()+
+  geom_point(aes(x = area*10, y = Temp, color = vegetation)) + 
+  geom_line(aes(y = predicted, group = vegetation, color = vegetation), size = 1)+
+    scale_color_manual(values = c("Primary Vegetation" = "forestgreen", "Secondary Vegetation" = "palegreen")) +  # Cores específicas para cada chr
+  facet_wrap(~Ano, nrow = 3, ncol = 6) +
+  labs(x = "Pixel area covered with vegetation (%)", y = "Average temperature (°C) - SBA",
+       color = "",
+       title = "R²: 0.995 (PV) | 0.988 (SV)")+
+  theme(legend.position = "top",
+        text = element_text(family = "serif"),
+        axis.title = element_text(size = 16, face = "bold"),
+        strip.text = element_text(face = "bold", size = 14),
+         legend.text = element_text(size = 14, face = "bold"),  # Tamanho do texto da legenda
+    legend.title = element_text(face = "bold", size = 14),
+    title = element_text(size = 14, face = "bold"))
+
+ggsave("fig/predicted_temperature_SBA.png", bg = "white",
+       dpi = 600, width = 10, height = 8)
+```
+
+### Painel
+
+```{r}
+
+library(ggpubr)
+
+#Join plots = Painel
+
+# Fixed Effects
+
+ggarrange(p1_fix, p2_fix, p3_fix, 
+          ncol=1, nrow=3, 
+          #common.legend = TRUE, 
+          legend="top", 
+          labels = c("a","b","c"),
+          font.label=list(color="black", face = "bold", size=18, family = "serif")) +
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm"),
+        text = element_text(size = 16, face = "bold",family = "serif"))
+
+ggsave("fig/painels/effect_fix_pf_sf.png", dpi = 600, width = 10, height = 15, bg = "white")
+
+# Random Effects
+ggarrange(p1_rand,p2_rand,p3_rand,
+          nrow = 3, ncol = 1, 
+          #common.legend = TRUE, 
+          legend="top", 
+          labels = c("a","b","c"),
+          font.label=list(color="black", face = "bold", size=18, family = "serif")) +
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm"),
+        text = element_text(size = 16, face = "bold",family = "serif"))
+
+ggsave("fig/painels/effect_rand_pf_sf_v2.png", dpi = 600, width = 10, height = 15, bg = "white")
+
+# Predict
+ggarrange(p1_pred,p2_pred,p3_pred,nrow = 3, ncol = 1, common.legend = TRUE, legend="top", labels = c("a","b","c"),
+          font.label=list(color="black", face = "bold", size=18, family = "serif")) +
+  theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm"),
+        text = element_text(size = 14, face = "bold",family = "serif"))
+
+ggsave("fig/painels/predict_pf_sf.png", dpi = 600, width = 15, height = 18, bg = "white")
+
+gc()
+```
+
+## Statistic models
+
+### Parameter estimates
+
+```{r}
+# Parameters Model - Tabela S2, S3 e S4
+
+## CBA
+
+# PREC
+
+CBA_pf_prec = data.frame(fixef(model_CBA_pf_prec))
+CBA_sf_prec = data.frame(fixef(model_CBA_sf_prec))
+
+# EVAPO
+
+CBA_pf_evapo = data.frame(fixef(model_CBA_pf_evapo))
+CBA_sf_evapo = data.frame(fixef(model_CBA_sf_evapo))
+
+# TEMP
+
+CBA_pf_temp = data.frame(fixef(model_CBA_pf_temp))
+CBA_sf_temp = data.frame(fixef(model_CBA_sf_temp))
+
+## EBA
+
+# PREC
+
+EBA_pf_prec = data.frame(fixef(model_EBA_pf_prec))
+EBA_sf_prec = data.frame(fixef(model_EBA_sf_prec))
+
+# EVAPO
+
+EBA_pf_evapo = data.frame(fixef(model_EBA_pf_evapo))
+EBA_sf_evapo = data.frame(fixef(model_EBA_sf_evapo))
+
+# TEMP
+
+EBA_pf_temp = data.frame(fixef(model_EBA_pf_temp))
+EBA_sf_temp = data.frame(fixef(model_EBA_sf_temp))
+
+## SBA
+
+# PREC
+
+SBA_pf_prec = data.frame(fixef(model_SBA_pf_prec))
+SBA_sf_prec = data.frame(fixef(model_SBA_sf_prec))
+
+# EVAPO
+
+SBA_pf_evapo = data.frame(fixef(model_SBA_pf_evapo))
+SBA_sf_evapo = data.frame(fixef(model_SBA_sf_evapo))
+
+# TEMP
+
+SBA_pf_temp = data.frame(fixef(model_SBA_pf_temp))
+SBA_sf_temp = data.frame(fixef(model_SBA_sf_temp))
+
+```
+
+### Confidence interval
+
+```{r}
+
+## CBA
+
+# PREC
+
+CBA_pf_prec_ic = data.frame(confint(model_CBA_pf_prec))
+CBA_sf_prec_ic = data.frame(confint(model_CBA_sf_prec))
+
+# EVAPO
+
+CBA_pf_evapo_ic = data.frame(confint(model_CBA_pf_evapo))
+CBA_sf_evapo_ic = data.frame(confint(model_CBA_sf_evapo))
+
+# TEMP
+
+CBA_pf_temp_ic = data.frame(confint(model_CBA_pf_temp))
+CBA_sf_temp_ic = data.frame(confint(model_CBA_sf_temp))
+
+## EBA
+
+# PREC
+
+EBA_pf_prec_ic = data.frame(confint(model_EBA_pf_prec))
+EBA_sf_prec_ic = data.frame(confint(model_EBA_sf_prec))
+
+# EVAPO
+
+EBA_pf_evapo_ic = data.frame(confint(model_EBA_pf_evapo))
+EBA_sf_evapo_ic = data.frame(confint(model_EBA_sf_evapo))
+
+# TEMP
+
+EBA_pf_temp_ic = data.frame(confint(model_EBA_pf_temp))
+EBA_sf_temp_ic = data.frame(confint(model_EBA_sf_temp))
+
+## SBA
+
+# PREC
+
+SBA_pf_prec_ic = data.frame(confint(model_SBA_pf_prec))
+SBA_sf_prec_ic = data.frame(confint(model_SBA_sf_prec))
+
+# EVAPO
+
+SBA_pf_evapo_ic = data.frame(confint(model_SBA_pf_evapo))
+SBA_sf_evapo_ic = data.frame(confint(model_SBA_sf_evapo))
+
+# TEMP
+
+SBA_pf_temp_ic = data.frame(confint(model_SBA_pf_temp))
+SBA_sf_temp_ic = data.frame(confint(model_SBA_sf_temp))
+```
+
+### \<10% for all models
+
+```{r}
+# Substitua 'seu_modelo' pelo nome do seu modelo
+coeficientes <- fixef(model_CBA_sf_prec)
+
+# O primeiro nível é o nível de referência, então seu coeficiente é 0
+coef_primeiro_nivel <- 0
+
+# Calcule o valor do parâmetro para o primeiro nível a partir das comparações
+valor_primeiro_nivel <- coef_primeiro_nivel + sum(coeficientes[-1])
+
+# Visualize o valor do parâmetro para o primeiro nível
+print(valor_primeiro_nivel)
+
+```
+
+## Model performance
+
+#### Precipitation
+
+```{r}
+
+## CBA
+
+### Primary vegetation
+
+(aov <- anova(model_CBA_pf_prec))
+lmerTest::ranova(model_CBA_pf_prec)
+summary(aov)
+simulateResiduals(fittedModel = model_CBA_pf_prec, plot = T)
+check_cba_pf_prec = check_model(model_CBA_pf_prec)
+check_cba_pf_prec
+
+ggsave("fig/supplemental_material/check_cba_pf_prec.png", bg  = "white", dpi = 600)
+
+### Secondary vegetation
+
+(aov <- anova(model_CBA_sf_prec))
+lmerTest::ranova(model_CBA_sf_prec)
+simulateResiduals(fittedModel = model_CBA_sf_prec, plot = T)
+check_cba_sf_prec = check_model(model_CBA_sf_prec)
+check_cba_sf_prec
+
+ggsave("fig/supplemental_material/check_cba_sf_prec.png", bg  = "white", dpi = 600)
+
+## SBA
+
+### Primary vegetation
+
+(aov <- anova(model_SBA_pf_prec))
+lmerTest::ranova(model_SBA_pf_prec)
+simulateResiduals(fittedModel = model_SBA_pf_prec, plot = T)
+check_sba_pf_prec = check_model(model_SBA_pf_prec)
+check_sba_pf_prec
+
+ggsave("fig/supplemental_material/check_sba_pf_prec.png", bg  = "white", dpi = 600)
+
+### Secondary vegetation
+
+(aov <- anova(model_SBA_sf_prec))
+lmerTest::ranova(model_SBA_sf_prec)
+simulateResiduals(fittedModel = model_SBA_sf_prec, plot = T)
+check_sba_sf_prec = check_model(model_SBA_sf_prec)
+check_sba_sf_prec
+
+ggsave("fig/supplemental_material/check_sba_sf_prec.png", bg  = "white", dpi = 600)
+
+## EBA
+
+### Primary vegetation
+
+(aov <- anova(model_EBA_pf_prec))
+lmerTest::ranova(model_EBA_pf_prec)
+simulateResiduals(fittedModel = model_EBA_pf_prec, plot = T)
+check_eba_pf_prec = check_model(model_EBA_pf_prec)
+check_eba_pf_prec
+
+ggsave("fig/supplemental_material/check_eba_pf_prec.png", bg  = "white", dpi = 600)
+
+### Secondary vegetation
+
+(aov <- anova(model_EBA_sf_prec))
+lmerTest::ranova(model_EBA_sf_prec)
+simulateResiduals(fittedModel = model_EBA_sf_prec, plot = T)
+check_eba_sf_prec = check_model(model_EBA_sf_prec)
+check_eba_sf_prec
+
+ggsave("fig/supplemental_material/check_eba_sf_prec.png", bg  = "white", dpi = 600)
+
+gc()
+```
+
+##### Histogram
+
+```{r}
+
+library(ggplotify)
+
+# Primary Vegetation
+
+## CBA
+residuals_cba_pf_prec = data.frame(resid(model_CBA_pf_prec))
+colnames(residuals_cba_pf_prec) <- "Residuals"
+
+histogram_cba_pf_prec <- ggplot(residuals_cba_pf_prec, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "Density",
+        title = "CBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_pf_prec = data.frame(resid(model_EBA_pf_prec))
+colnames(residuals_eba_pf_prec) <- "Residuals"
+
+histogram_eba_pf_prec <- ggplot(residuals_eba_pf_prec, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "EBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_pf_prec = data.frame(resid(model_SBA_pf_prec))
+colnames(residuals_sba_pf_prec) <- "Residuals"
+
+histogram_sba_pf_prec <- ggplot(residuals_sba_pf_prec, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "SBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+
+# Secondary Vegetation
+
+## CBA
+residuals_cba_sf_prec = data.frame(resid(model_CBA_sf_prec))
+colnames(residuals_cba_sf_prec) <- "Residuals"
+
+histogram_cba_sf_prec <- ggplot(residuals_cba_sf_prec, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "CBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_sf_prec = data.frame(resid(model_EBA_sf_prec))
+colnames(residuals_eba_sf_prec) <- "Residuals"
+
+histogram_eba_sf_prec <- ggplot(residuals_eba_sf_prec, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "EBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_sf_prec = data.frame(resid(model_SBA_sf_prec))
+colnames(residuals_sba_sf_prec) <- "Residuals"
+
+histogram_sba_sf_prec <- ggplot(residuals_sba_sf_prec, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "royalblue2",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "SBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+### Plot
+
+histo_prec = (histogram_cba_pf_prec+histogram_cba_sf_prec+ histogram_eba_pf_prec+histogram_eba_sf_prec+ histogram_sba_pf_prec+histogram_sba_sf_prec)
+
+ggsave("fig/supplemental_material/histogram_all_regions_pf_sf_prec.png", bg  = "white", dpi = 600)
+
+gc()
+```
+
+#### Evapotranspiration
+
+```{r}
+## CBA
+
+### Primary vegetation
+
+(aov <- anova(model_CBA_pf_evapo))
+lmerTest::ranova(model_CBA_pf_evapo)
+simulateResiduals(fittedModel = model_CBA_pf_evapo, plot = T)
+check_cba_pf_evapo = check_model(model_CBA_pf_evapo)
+check_cba_pf_evapo
+
+ggsave("fig/supplemental_material/check_cba_pf_evapo.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_CBA_sf_evapo))
+lmerTest::ranova(model_CBA_sf_evapo)
+simulateResiduals(fittedModel = model_CBA_sf_evapo, plot = T)
+check_cba_sf_evapo = check_model(model_CBA_sf_evapo)
+check_cba_sf_evapo
+
+ggsave("fig/supplemental_material/check_cba_sf_evapo.png", bg  = "white", dpi = 600)
+
+## SBA
+
+### Primary vegetation
+
+(aov <- anova(model_SBA_pf_evapo))
+lmerTest::ranova(model_SBA_pf_evapo)
+simulateResiduals(fittedModel = model_SBA_pf_evapo, plot = T)
+check_sba_pf_evapo = check_model(model_SBA_pf_evapo)
+check_sba_pf_evapo
+
+ggsave("fig/supplemental_material/check_sba_pf_evapo.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_SBA_sf_evapo))
+lmerTest::ranova(model_SBA_sf_evapo)
+simulateResiduals(fittedModel = model_SBA_sf_evapo, plot = T)
+check_sba_sf_evapo = check_model(model_SBA_sf_evapo)
+check_sba_sf_evapo
+
+ggsave("fig/supplemental_material/check_sba_sf_evapo.png", bg  = "white", dpi = 600)
+
+## EBA
+
+### Primary vegetation
+
+(aov <- anova(model_EBA_pf_evapo))
+lmerTest::ranova(model_EBA_pf_evapo)
+simulateResiduals(fittedModel = model_EBA_pf_evapo, plot = T)
+check_eba_pf_evapo = check_model(model_EBA_pf_evapo)
+check_eba_pf_evapo
+
+ggsave("fig/supplemental_material/check_eba_pf_evapo.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_EBA_sf_evapo))
+lmerTest::ranova(model_EBA_sf_evapo)
+simulateResiduals(fittedModel = model_EBA_sf_evapo, plot = T)
+check_eba_sf_evapo = check_model(model_EBA_sf_evapo)
+check_eba_sf_evapo
+
+ggsave("fig/supplemental_material/check_eba_sf_evapo.png", bg  = "white", dpi = 600)
+
+
+```
+
+##### Histogram
+
+```{r}
+
+# Primary Vegetation
+
+## CBA
+residuals_cba_pf_evapo = data.frame(resid(model_CBA_pf_evapo))
+colnames(residuals_cba_pf_evapo) <- "Residuals"
+
+histogram_cba_pf_evapo <- ggplot(residuals_cba_pf_evapo, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "Density",
+        title = "CBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_pf_evapo = data.frame(resid(model_EBA_pf_evapo))
+colnames(residuals_eba_pf_evapo) <- "Residuals"
+
+histogram_eba_pf_evapo <- ggplot(residuals_eba_pf_evapo, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "EBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_pf_evapo = data.frame(resid(model_SBA_pf_evapo))
+colnames(residuals_sba_pf_evapo) <- "Residuals"
+
+histogram_sba_pf_evapo <- ggplot(residuals_sba_pf_evapo, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "SBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+
+# Secondary Vegetation
+
+## CBA
+residuals_cba_sf_evapo = data.frame(resid(model_CBA_sf_evapo))
+colnames(residuals_cba_sf_evapo) <- "Residuals"
+
+histogram_cba_sf_evapo <- ggplot(residuals_cba_sf_evapo, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "CBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_sf_evapo = data.frame(resid(model_EBA_sf_evapo))
+colnames(residuals_eba_sf_evapo) <- "Residuals"
+
+histogram_eba_sf_evapo <- ggplot(residuals_eba_sf_evapo, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "EBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_sf_evapo = data.frame(resid(model_SBA_sf_evapo))
+colnames(residuals_sba_sf_evapo) <- "Residuals"
+
+histogram_sba_sf_evapo <- ggplot(residuals_sba_sf_evapo, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "turquoise3",
+                 color = "white",bins = 20) +
+  labs(x = "", y = "",
+        title = "SBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+
+### Plot
+
+histo_evapo = (histogram_cba_pf_evapo+histogram_cba_sf_evapo+ histogram_eba_pf_evapo+histogram_eba_sf_evapo+ histogram_sba_pf_evapo+histogram_sba_sf_evapo)
+
+ggsave("fig/supplemental_material/histogram_all_regions_pf_sf_evapo.png", bg  = "white", dpi = 600)
+
+gc()
+```
+
+#### Temperature
+
+```{r}
+
+## CBA
+
+### Primary vegetation
+
+(aov <- anova(model_CBA_pf_temp))
+lmerTest::ranova(model_CBA_pf_temp)
+simulateResiduals(fittedModel = model_CBA_pf_temp, plot = T)
+check_cba_pf_temp = check_model(model_CBA_pf_temp)
+check_cba_pf_temp
+
+ggsave("fig/supplemental_material/check_cba_pf_temp.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_CBA_sf_temp))
+lmerTest::ranova(model_CBA_sf_temp)
+simulateResiduals(fittedModel = model_CBA_sf_temp, plot = T)
+check_cba_sf_temp = check_model(model_CBA_sf_temp)
+check_cba_sf_temp
+
+ggsave("fig/supplemental_material/check_cba_sf_temp.png", bg  = "white", dpi = 600)
+
+## SBA
+
+### Primary vegetation
+
+(aov <- anova(model_SBA_pf_temp))
+lmerTest::ranova(model_SBA_pf_temp)
+simulateResiduals(fittedModel = model_SBA_pf_temp, plot = T)
+check_sba_pf_temp = check_model(model_SBA_pf_temp)
+check_sba_pf_temp
+
+ggsave("fig/supplemental_material/check_sba_pf_temp.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_SBA_sf_temp))
+lmerTest::ranova(model_SBA_sf_temp)
+simulateResiduals(fittedModel = model_SBA_sf_temp, plot = T)
+check_sba_sf_temp = check_model(model_SBA_sf_temp)
+check_sba_sf_temp
+
+ggsave("fig/supplemental_material/check_sba_sf_temp.png", bg  = "white", dpi = 600)
+
+## EBA
+
+### Primary vegetation
+
+(aov <- anova(model_EBA_pf_temp))
+lmerTest::ranova(model_EBA_pf_temp)
+simulateResiduals(fittedModel = model_EBA_pf_temp, plot = T)
+check_eba_pf_temp = check_model(model_EBA_pf_temp)
+check_eba_pf_temp
+
+ggsave("fig/supplemental_material/check_eba_pf_temp.png", bg  = "white", dpi = 600)
+
+### Second vegetation
+
+(aov <- anova(model_EBA_sf_temp))
+lmerTest::ranova(model_EBA_sf_temp)
+simulateResiduals(fittedModel = model_EBA_sf_temp, plot = T)
+check_eba_sf_temp = check_model(model_EBA_sf_temp)
+check_eba_sf_temp
+
+ggsave("fig/supplemental_material/check_eba_sf_temp.png", bg  = "white", dpi = 600)
+
+gc()
+```
+
+##### Histogram
+
+```{r}
+# Primary Vegetation
+
+## CBA
+residuals_cba_pf_temp = data.frame(resid(model_CBA_pf_temp))
+colnames(residuals_cba_pf_temp) <- "Residuals"
+
+histogram_cba_pf_temp <- ggplot(residuals_cba_pf_temp, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "Density",
+        title = "CBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_pf_temp = data.frame(resid(model_EBA_pf_temp))
+colnames(residuals_eba_pf_temp) <- "Residuals"
+
+histogram_eba_pf_temp <- ggplot(residuals_eba_pf_temp, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "Density",
+        title = "EBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_pf_temp = data.frame(resid(model_SBA_pf_temp))
+colnames(residuals_sba_pf_temp) <- "Residuals"
+
+histogram_sba_pf_temp <- ggplot(residuals_sba_pf_temp, aes(.data[["Residuals"]])) +
+  geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "",
+        title = "SBA",
+       subtitle = "Primary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+
+# Secondary Vegetation
+
+## CBA
+residuals_cba_sf_temp = data.frame(resid(model_CBA_sf_temp))
+colnames(residuals_cba_sf_temp) <- "Residuals"
+
+histogram_cba_sf_temp <- ggplot(residuals_cba_sf_temp, aes(.data[["Residuals"]])) +
+   geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "",
+        title = "CBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## EBA
+residuals_eba_sf_temp = data.frame(resid(model_EBA_sf_temp))
+colnames(residuals_eba_sf_temp) <- "Residuals"
+
+histogram_eba_sf_temp <- ggplot(residuals_eba_sf_temp, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "",
+        title = "EBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+## SBA
+residuals_sba_sf_temp = data.frame(resid(model_SBA_sf_temp))
+colnames(residuals_sba_sf_temp) <- "Residuals"
+
+histogram_sba_sf_temp <- ggplot(residuals_sba_sf_temp, aes(.data[["Residuals"]])) +
+    geom_histogram(aes(y = ..density..),fill = "orange3",
+                 color = "white",bins = 20) +
+  labs(x = "Model residual", y = "",
+        title = "SBA",
+       subtitle = "Secondary vegetation") +
+  geom_density(col = 'red')+
+  theme_bw()+
+  theme(plot.subtitle = element_text(size = 10))
+
+
+### Plot
+
+histo_temp = (histogram_cba_pf_temp+histogram_cba_sf_temp+ histogram_eba_pf_temp+histogram_eba_sf_temp+ histogram_sba_pf_temp+histogram_sba_sf_temp)
+
+ggsave("fig/supplemental_material/histogram_all_regions_pf_sf_temp.png", bg  = "white", dpi = 600)
+
+gc()
+```
+
+#### Contrast
+
+```{r}
+
+library(lsmeans)
+
+###### Precipitation
+
+# CBA 
+
+## Primary vegetation
+
+lmeans_cba_pf_prec <- lsmeans(
+  model_CBA_pf_prec,
+  pairwise ~ ff_area
+)
+
+# Print comparisons
+con_cba_pf_prec = data.frame(lmeans_cba_pf_prec$contrasts)
+con_cba_pf_prec$type = "Primary vegetation"
+con_cba_pf_prec$region = "CBA"
+con_cba_pf_prec$variable = "Precipitation"
+
+con_cba_pf_prec %>% 
+  ggplot(aes(estimate))+
+  geom_histogram(fill = "steelblue", color = "white", 
+                 bins =15)+
+  theme_bw()
+
+## Secondary vegetation
+
+lmeans_cba_sf_prec <- lsmeans(
+  model_CBA_sf_prec,
+  pairwise ~ ff_area
+)
+
+# Print comparisons
+con_cba_sf_prec = data.frame(lmeans_cba_sf_prec$contrasts)
+con_cba_sf_prec$type = "Secondary vegetation"
+con_cba_sf_prec$region = "CBA"
+con_cba_sf_prec$variable = "Precipitation"
+
+con_cba_sf_prec %>% 
+  ggplot(aes(estimate))+
+  geom_histogram(fill = "steelblue", color = "white", 
+                 bins =15)+
+  theme_bw()
+
+# EBA
+
+## Primary vegetation
+
+lmeans_eba_pf_prec <- lsmeans(
+  model_EBA_pf_prec,
+  pairwise ~ ff_area
+)
+
+con_eba_pf_prec = data.frame(lmeans_eba_pf_prec$contrasts)
+con_eba_pf_prec$type = "Primary vegetation"
+con_eba_pf_prec$region = "EBA"
+con_eba_pf_prec$variable = "Precipitation"
+
+## Secondary vegetation
+
+lmeans_eba_sf_prec <- lsmeans(
+  model_EBA_sf_prec,
+  pairwise ~ ff_area
+)
+
+con_eba_sf_prec = data.frame(lmeans_eba_sf_prec$contrasts)
+con_eba_sf_prec$type = "Secondary vegetation"
+con_eba_sf_prec$region = "EBA"
+con_eba_sf_prec$variable = "Precipitation"
+
+# SBA
+
+## Primary vegetation
+
+lmeans_sba_pf_prec <- lsmeans(
+  model_SBA_pf_prec,
+  pairwise ~ ff_area
+)
+
+con_sba_pf_prec = data.frame(lmeans_sba_pf_prec$contrasts)
+con_sba_pf_prec$type = "Primary vegetation"
+con_sba_pf_prec$region = "SBA"
+con_sba_pf_prec$variable = "Precipitation"
+
+## Secondary vegetation
+
+lmeans_sba_sf_prec <- lsmeans(
+  model_SBA_sf_prec,
+  pairwise ~ ff_area
+)
+
+con_sba_sf_prec = data.frame(lmeans_sba_sf_prec$contrasts)
+con_sba_sf_prec$type = "Secondary vegetation"
+con_sba_sf_prec$region = "SBA"
+con_sba_sf_prec$variable = "Precipitation"
+
+###### Evapotranspiration
+
+# CBA
+
+## Primary vegetation
+
+lmeans_cba_pf_evapo <- lsmeans(
+  model_CBA_pf_evapo,
+  pairwise ~ ff_area
+)
+
+con_cba_pf_evapo = data.frame(lmeans_cba_pf_evapo$contrasts)
+con_cba_pf_evapo$type = "Primary vegetation"
+con_cba_pf_evapo$region = "CBA"
+con_cba_pf_evapo$variable = "Evapotranspiration"
+
+## Secondary vegetation
+
+lmeans_cba_sf_evapo <- lsmeans(
+  model_CBA_sf_evapo,
+  pairwise ~ ff_area
+)
+
+con_cba_sf_evapo = data.frame(lmeans_cba_sf_evapo$contrasts)
+con_cba_sf_evapo$type = "Secondary vegetation"
+con_cba_sf_evapo$region = "CBA"
+con_cba_sf_evapo$variable = "Evapotranspiration"
+
+# EBA
+
+## Primary vegetation
+
+lmeans_eba_pf_evapo <- lsmeans(
+  model_EBA_pf_evapo,
+  pairwise ~ ff_area
+)
+
+con_eba_pf_evapo = data.frame(lmeans_eba_pf_evapo$contrasts)
+con_eba_pf_evapo$type = "Primary vegetation"
+con_eba_pf_evapo$region = "EBA"
+con_eba_pf_evapo$variable = "Evapotranspiration"
+
+## Secondary vegetation
+
+lmeans_eba_sf_evapo <- lsmeans(
+  model_EBA_sf_evapo,
+  pairwise ~ ff_area
+)
+
+con_eba_sf_evapo = data.frame(lmeans_eba_sf_evapo$contrasts)
+con_eba_sf_evapo$type = "Secondary vegetation"
+con_eba_sf_evapo$region = "EBA"
+con_eba_sf_evapo$variable = "Evapotranspiration"
+
+# SBA
+
+## Primary vegetation
+
+lmeans_sba_pf_evapo <- lsmeans(
+  model_SBA_pf_evapo,
+  pairwise ~ ff_area
+)
+
+con_sba_pf_evapo = data.frame(lmeans_sba_pf_evapo$contrasts)
+con_sba_pf_evapo$type = "Primary vegetation"
+con_sba_pf_evapo$region = "SBA"
+con_sba_pf_evapo$variable = "Evapotranspiration"
+
+## Secondary vegetation
+
+lmeans_sba_sf_evapo <- lsmeans(
+  model_SBA_sf_evapo,
+  pairwise ~ ff_area
+)
+
+con_sba_sf_evapo = data.frame(lmeans_sba_sf_evapo$contrasts)
+con_sba_sf_evapo$type = "Secondary vegetation"
+con_sba_sf_evapo$region = "SBA"
+con_sba_sf_evapo$variable = "Evapotranspiration"
+
+####### Temperature
+
+# CBA
+
+## Primary vegetation
+
+lmeans_cba_pf_temp <- lsmeans(
+  model_CBA_pf_temp,
+  pairwise ~ ff_area
+)
+
+con_cba_pf_temp = data.frame(lmeans_cba_pf_temp$contrasts)
+con_cba_pf_temp$type = "Primary vegetation"
+con_cba_pf_temp$region = "CBA"
+con_cba_pf_temp$variable = "Temperature"
+
+## Secondary vegetation
+
+lmeans_cba_sf_temp <- lsmeans(
+  model_CBA_sf_temp,
+  pairwise ~ ff_area
+)
+
+con_cba_sf_temp = data.frame(lmeans_cba_sf_temp$contrasts)
+con_cba_sf_temp$type = "Secondary vegetation"
+con_cba_sf_temp$region = "CBA"
+con_cba_sf_temp$variable = "Temperature"
+
+# EBA
+
+## Primary vegetation
+
+lmeans_eba_pf_temp <- lsmeans(
+  model_EBA_pf_temp,
+  pairwise ~ ff_area
+)
+
+con_eba_pf_temp = data.frame(lmeans_eba_pf_temp$contrasts)
+con_eba_pf_temp$type = "Primary vegetation"
+con_eba_pf_temp$region = "EBA"
+con_eba_pf_temp$variable = "Temperature"
+
+## Secondary vegetation
+
+lmeans_eba_sf_temp <- lsmeans(
+  model_EBA_sf_temp,
+  pairwise ~ ff_area
+)
+
+con_eba_sf_temp = data.frame(lmeans_eba_sf_temp$contrasts)
+con_eba_sf_temp$type = "Secondary vegetation"
+con_eba_sf_temp$region = "EBA"
+con_eba_sf_temp$variable = "Temperature"
+
+# SBA
+
+## Primary vegetation
+
+lmeans_sba_pf_temp <- lsmeans(
+  model_SBA_pf_temp,
+  pairwise ~ ff_area
+)
+
+con_sba_pf_temp = data.frame(lmeans_sba_pf_temp$contrasts)
+con_sba_pf_temp$type = "Primary vegetation"
+con_sba_pf_temp$region = "SBA"
+con_sba_pf_temp$variable = "Temperature"
+
+## Secondary vegetation
+
+lmeans_sba_sf_temp <- lsmeans(
+  model_SBA_sf_temp,
+  pairwise ~ ff_area
+)
+
+con_sba_sf_temp = data.frame(lmeans_sba_sf_temp$contrasts)
+con_sba_sf_temp$type = "Secondary vegetation"
+con_sba_sf_temp$region = "SBA"
+con_sba_sf_temp$variable = "Temperature"
+
+all_contrast = rbind(con_cba_pf_evapo,con_cba_pf_prec,con_cba_pf_temp,con_cba_sf_evapo, con_cba_sf_prec, con_cba_sf_temp,con_eba_pf_evapo, con_eba_pf_prec, con_eba_pf_temp,con_eba_sf_evapo, con_eba_sf_prec, con_eba_sf_temp,con_sba_pf_evapo, con_sba_pf_prec, con_sba_pf_temp,con_sba_sf_evapo, con_sba_sf_prec, con_sba_sf_temp)
+
+prec_contrast = all_contrast %>% 
+  filter(variable == "Precipitation") %>% 
+  ggplot(aes(estimate))+
+  geom_histogram(color = "white", bins = 20, 
+                 fill = "royalblue2")+
+  facet_grid(~region+type)+
+  ggthemes::theme_few()+
+  labs(x = "", 
+       y = "Density")+
+  theme(axis.title.y = element_text(size = 14, face = "bold"))
+
+evapo_contrast = all_contrast %>% 
+  filter(variable == "Evapotranspiration") %>% 
+  ggplot(aes(estimate))+
+  geom_histogram(color = "white", bins = 20, 
+                 fill = "turquoise3")+
+  facet_grid(~region+type)+
+  ggthemes::theme_few()+
+  labs(x = "", 
+       y = "Density")+
+  theme(axis.title.y = element_text(size = 14, face = "bold"))
+
+temp_contrast = all_contrast %>% 
+  filter(variable == "Temperature") %>% 
+  ggplot(aes(estimate))+
+  geom_histogram(color = "white", bins = 20, 
+                 fill = "orange3")+
+  facet_grid(~region+type)+
+  ggthemes::theme_few()+
+  labs(x = "Constrast", 
+       y = "Density")+
+  theme(axis.title.y = element_text(size = 14, face = "bold"),
+        axis.title.x = element_text(size = 14, face = "bold"))
+
+plot_grid(prec_contrast,evapo_contrast,temp_contrast, ncol = 1)
+
+```
+
+## Heatmaps
+
+#### Precipitation
+
+```{r}
+
+hp_prec = all_pf_sf_prec_model
+
+hp_pf_prec = all_pf_sf_prec_model %>% 
+   filter(type == 1) %>% 
+   dplyr::select(Ano,Tipo, region, ff_area, Prec)
+
+hp_sf_prec = all_pf_sf_prec_model %>% 
+  filter(type == 2) %>% 
+  dplyr::select(Ano,Tipo, region, ff_area, Prec)
+
+hp_pf_prec$prec_sf = hp_sf_prec$Prec
+
+hp2_prec = hp_pf_prec %>% 
+  group_by(region, Ano, ff_area) %>% 
+  summarise(
+    dif = prec_sf-Prec #Prec SF - Prec PF
+  )
+```
+
+```{r}
+
+library(ggtext)
+
+hp2_prec$ano = as.character(hp2_prec$Ano)
+hp2_prec$ff_area = as.factor(hp2_prec$ff_area)
+unique(hp2_prec$Ano)
+
+# Definir os intervalos desejados
+intervalos_prec <- c(-Inf, -300, -200, -100, 0, 100, Inf)
+labels_prec <- c("< -300", "-300 to -200", "-200 to -100", "-100 to 0", "0 to 100", "> 100")
+
+p1_heat = hp2_prec %>% 
+  ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_prec, labels = labels_prec))) +
+  geom_tile(color = "white", lwd = 1.4) +
+  scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
+  scale_fill_manual(values = c('#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#92c5de', '#4393c3', '#2166ac')) +
+  labs(x = "",
+       y = "",
+       fill = "Variation\n(mm)") +
+  theme_minimal() +
+  facet_grid(~region) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 7, face = "bold", family = "serif")) +
+        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  coord_flip(xlim = c(2001, 2018)) +
+  theme(legend.text = element_text(face = "plain", size = 7)) +
+  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
+  theme(plot.title = element_markdown())
+
+  p1_heat
+
+ggsave("fig/heatmap_prec_v2.png", dpi = 600,
+       width = 14, height = 7.5, bg = "white")
+
+gc()
+```
+
+#### Evapotranspiration
+
+```{r}
+
+#
+hp_evapo = all_pf_sf_evapo_model
+
+hp_pf_evapo = all_pf_sf_evapo_model %>% 
+   filter(type == 1) %>% 
+   dplyr::select(Ano,Tipo, region, ff_area, Evapo)
+
+
+hp_sf_evapo = all_pf_sf_evapo_model %>% 
+  filter(type == 2) %>% 
+  dplyr::select(Ano,Tipo, region, ff_area, Evapo)
+
+hp_pf_evapo$evapo_sf = hp_sf_evapo$Evapo
+
+hp2_evapo = hp_pf_evapo %>% 
+  group_by(region, Ano, ff_area) %>% 
+  summarise(
+    dif = evapo_sf-Evapo #EVAPO_SF - EVAPO_PF
+  )
+```
+
+```{r}
+
+library(ggtext)
+
+hp2_evapo$ano = as.character(hp2_evapo$Ano)
+hp2_evapo$ff_area = as.factor(hp2_evapo$ff_area)
+unique(hp2_evapo$Ano)
+
+# Definir os intervalos desejados
+intervalos_evapo <- c(-Inf, -100, -50, 0, 50, 100, Inf)
+labels_evapo <- c("< -100", "-100 to -50", "-50 to -0", "0 to 50", "50 to 100", "> 100")
+
+p2_heat = hp2_evapo %>% 
+  ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_evapo, labels = labels_evapo))) +
+  geom_tile(color = "white", lwd = 1.4) +
+  scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
+  scale_fill_manual(values = c('#d6604d', '#f4a582', '#fddbc7', '#92c5de', '#4393c3', '#2166ac')) +
+  labs(x = "",
+       y = "",
+       fill = "Variation\n(mm)") +
+  theme_minimal() +
+  facet_grid(~region) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 7, face = "bold", family = "serif")) +
+        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  coord_flip(xlim = c(2001, 2018)) +
+  theme(legend.text = element_text(face = "plain", size = 7)) +
+  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
+  theme(plot.title = element_markdown())
+
+  p2_heat
+
+ggsave("fig/heatmap_evapo.png", dpi = 600,
+       width = 14, height = 7.5, bg = "white")
+
+gc()
+```
+
+#### Temperature
+
+```{r}
+
+#
+hp_temp = all_pf_sf_temp_model
+
+hp_pf_temp = all_pf_sf_temp_model %>% 
+   filter(type == 1) %>% 
+   dplyr::select(Ano,Tipo, region, ff_area, Temp)
+
+
+hp_sf_temp = all_pf_sf_temp_model %>% 
+  filter(type == 2) %>% 
+  dplyr::select(Ano,Tipo, region, ff_area, Temp)
+
+hp_pf_temp$temp_sf = hp_sf_temp$Temp
+
+hp2_temp = hp_pf_temp %>% 
+  group_by(region, Ano, ff_area) %>% 
+  summarise(
+    dif = temp_sf-Temp #TEMP_SF - TEMP_PF
+  )
+```
+
+```{r}
+
+library(ggtext)
+
+hp2_temp$ano = as.character(hp2_temp$Ano)
+hp2_temp$ff_area = as.factor(hp2_temp$ff_area)
+unique(hp2_temp$Ano)
+
+# Definir os intervalos desejados
+intervalos_temp <- c(-Inf, -0.75, -0.50, -0.25, 0, 0.25, 0.50, Inf)
+labels_temp <- c("< -0.75", "-0.75 to -0.5", "-0.5 to -0.25", "-0.25 to -0", "0 to 0.25", "0.25 to 0.5", "> 0.5")
+
+p3_heat = hp2_temp %>% 
+  ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_temp, labels = labels_temp))) +
+  geom_tile(color = "white", lwd = 1.4) +
+  scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
+  scale_fill_manual(values = c( '#1040ac','#2166ac','#4393c3','#92c5de', '#f4a582', '#d6604d','#b2182b')) +
+  labs(x = "",
+       y = "Pixel area Occupation (%)",
+       fill = "Variation\n(\u00B0C)") +
+  theme_minimal() +
+  facet_grid(~region) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 7, face = "bold", family = "serif")) +
+        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  coord_flip(xlim = c(2001, 2018)) +
+   theme(legend.text = element_text(face = "plain", size = 7)) +
+  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
+  theme(plot.title = element_markdown())
+
+  p3_heat
+  
+ggsave("fig/heatmap_temp.png", dpi = 600,
+       width = 14, height = 7.5, bg = "white")
+
+gc()
+```
+
+### Painel
+
+```{r}
+
+library(cowplot)
+library(ggpubr)
+
+#Join plots = Painel
+
+p_all = ggarrange(p1_heat,p2_heat,p3_heat,nrow = 3, ncol = 1, labels = c("a","b","c"),
+          font.label=list(color="black", face = "bold", size=7, family = "serif")) +
+          #font.label=list(color="black", face = "bold", size=18, family = "serif")) +
+  theme(plot.margin = margin(0.1,0.2,0.1,0.1, "cm"),
+        text = element_text(size = 7, face = "bold",family = "serif"))
+        #text = element_text(size = 16, face = "bold",family = "serif"))
+
+p_all
+
+ggsave("fig/painels/heatmap_pf_sf.png", dpi = 600, width = 12, height = 15, bg = "white")
+```
