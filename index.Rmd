@@ -3,13 +3,13 @@ title: "Regenerating vegetation still unable to bring back the lost rainfall in 
 author: Laís Rosa Oliveira
 format: 
   html:
-    code-fold: false
+    code-fold: true
     smooth-scroll: true
     fig-width: 16
     fig-height: 10
     css: styles.css
     self-contained: true
-    #code-tools:
+    code-tools:
       #source: true
       #toggle: true
       #caption: "Source code"
