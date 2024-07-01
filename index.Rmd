@@ -4,26 +4,30 @@ author: Laís Rosa Oliveira
 format: 
   html:
     code-fold: true
-    smooth-scroll: true
-    fig-width: 16
-    fig-height: 10
-    css: styles.css
-    self-contained: true
+    #smooth-scroll: true
+    #fig-width: 16
+    #fig-height: 10
+    #css: styles.css
+    #self-contained: true
     code-tools:
-      #source: true
-      #toggle: true
-      #caption: "Source code"
-theme: "cosmo"
+      source: true
+      toggle: true
+      caption: "Source code"
+theme:
+  light: cosmo
+  dark: [cosmo, theme-dark.scss]
+code-line-numbers: true
 toc: true
-toc-location: right
-toc-depth: 10
+#toc-location: right
+#toc-depth: 10
 fontcolor: "#B06500" # {html} Color of text.
 linkcolor: "#007FFF" # {html, pdf, beamer} Color of link text.
 reference-location: "margin"
 colortheme: "#B06500"
 highlight: monochrome
-warning: false
-cache: true
+execute:
+   warning: false
+   cache: true
 ---
 
 
