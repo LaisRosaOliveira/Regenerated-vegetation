@@ -1,33 +1,26 @@
  ---
 title: "Regenerating vegetation still unable to bring back the lost rainfall in the Brazilian Amazon"
 author: Laís Rosa Oliveira
-format: 
-  html:
-    code-fold: true
-    #smooth-scroll: true
-    #fig-width: 16
-    #fig-height: 10
-    #css: styles.css
-    #self-contained: true
-    code-tools:
-      source: true
-      toggle: true
-      caption: "Source code"
+editor: visual
+title-block-banner: "white"
+date-format: medium
+date: last-modified
 theme:
-  light: cosmo
-  dark: [cosmo, theme-dark.scss]
-code-line-numbers: true
-toc: true
-#toc-location: right
-#toc-depth: 10
-fontcolor: "#B06500" # {html} Color of text.
-linkcolor: "#007FFF" # {html, pdf, beamer} Color of link text.
-reference-location: "margin"
-colortheme: "#B06500"
-highlight: monochrome
+  light: lux
+format: 
+  html: 
+     self-contained: true
+     smooth-scroll: true
+     toc: true
+     toc-location: left
+     toc-depth: 5
+     fig-width: 10
+     fig-height: 5
+     code-fold: false
+     css: styles.css
 execute:
-   warning: false
-   cache: true
+  cache: true
+  warning: false
 ---
 
 
@@ -3767,22 +3760,25 @@ labels_prec <- c("< -300", "-300 to -200", "-200 to -100", "-100 to 0", "0 to 10
 
 p1_heat = hp2_prec %>% 
   ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_prec, labels = labels_prec))) +
+  ggtitle("") +
   geom_tile(color = "white", lwd = 1.4) +
   scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
   scale_fill_manual(values = c('#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#92c5de', '#4393c3', '#2166ac')) +
   labs(x = "",
        y = "",
-       fill = "Variation\n(mm)") +
+       fill = "SV-PV\ndifference (mm)") +
   theme_minimal() +
   facet_grid(~region) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
-        text = element_text(size = 7, face = "bold", family = "serif")) +
-        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
-        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  theme(#plot.title = element_text(hjust = 0.5),
+        legend.title=  element_text(size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        #axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 7, face = "bold", family = "serif")) +
+        axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 14, face = "bold", family = "serif")) +
   coord_flip(xlim = c(2001, 2018)) +
-  theme(legend.text = element_text(face = "plain", size = 7)) +
-  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  #theme(legend.text = element_text(face = "plain", size = 7)) +
+  theme(legend.text = element_text(face = "plain", size = 12)) +
   guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
   theme(plot.title = element_markdown())
 
@@ -3829,26 +3825,29 @@ unique(hp2_evapo$Ano)
 
 # Definir os intervalos desejados
 intervalos_evapo <- c(-Inf, -100, -50, 0, 50, 100, Inf)
-labels_evapo <- c("< -100", "-100 to -50", "-50 to -0", "0 to 50", "50 to 100", "> 100")
+labels_evapo <- c("< -100", "-100 to -50 ", "-50 to -0", "0 to 50", "50 to 100", "> 100")
 
 p2_heat = hp2_evapo %>% 
   ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_evapo, labels = labels_evapo))) +
+  ggtitle("") +
   geom_tile(color = "white", lwd = 1.4) +
   scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
   scale_fill_manual(values = c('#d6604d', '#f4a582', '#fddbc7', '#92c5de', '#4393c3', '#2166ac')) +
   labs(x = "",
        y = "",
-       fill = "Variation\n(mm)") +
+       fill = "SV-PV\ndifference (mm)") +
   theme_minimal() +
   facet_grid(~region) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
-        text = element_text(size = 7, face = "bold", family = "serif")) +
-        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
-        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  theme(#plot.title = element_text(hjust = 0.5),
+        legend.title = element_text(size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        #axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 7, face = "bold", family = "serif")) +
+        axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 14, face = "bold", family = "serif")) +
   coord_flip(xlim = c(2001, 2018)) +
-  theme(legend.text = element_text(face = "plain", size = 7)) +
-  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  #theme(legend.text = element_text(face = "plain", size = 7)) +
+  theme(legend.text = element_text(face = "plain", size = 12)) +
   guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
   theme(plot.title = element_markdown())
 
@@ -3899,22 +3898,25 @@ labels_temp <- c("< -0.75", "-0.75 to -0.5", "-0.5 to -0.25", "-0.25 to -0", "0 
 
 p3_heat = hp2_temp %>% 
   ggplot(aes(Ano, ff_area, fill = cut(dif, breaks = intervalos_temp, labels = labels_temp))) +
+  ggtitle("") +
   geom_tile(color = "white", lwd = 1.4) +
   scale_x_continuous(limits = c(2000, 2019), breaks = seq(2000, 2019, step = 1)) +
   scale_fill_manual(values = c( '#1040ac','#2166ac','#4393c3','#92c5de', '#f4a582', '#d6604d','#b2182b')) +
   labs(x = "",
-       y = "Pixel area Occupation (%)",
-       fill = "Variation\n(\u00B0C)") +
+       y = "Vegetation coverage (%)",
+       fill = "SV-PV\ndifference (\u00B0C)") +
   theme_minimal() +
   facet_grid(~region) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
-        text = element_text(size = 7, face = "bold", family = "serif")) +
-        #axis.text = element_text(size = 14, face = "plain", family = "serif", color = "black"),
-        #text = element_text(size = 16, face = "bold", family = "serif")) +
+  theme(#plot.title = element_text(hjust = 0.5),
+        legend.title=element_text(size = 12),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+       #axis.text = element_text(size = 7, face = "plain", family = "serif", color = "black"),
+        #text = element_text(size = 7, face = "bold", family = "serif")) +
+        axis.text = element_text(size = 12, face = "plain", family = "serif", color = "black"),
+        text = element_text(size = 14, face = "bold", family = "serif")) +
   coord_flip(xlim = c(2001, 2018)) +
-   theme(legend.text = element_text(face = "plain", size = 7)) +
-  #theme(legend.text = element_text(face = "plain", size = 14)) +
+  #theme(legend.text = element_text(face = "plain", size = 7)) +
+  theme(legend.text = element_text(face = "plain", size = 12)) +
   guides(fill = guide_legend(title.vjust = 1.5, keyheight = 1.5, keywidth = 1.8)) + 
   theme(plot.title = element_markdown())
 
@@ -3936,11 +3938,11 @@ library(ggpubr)
 #Join plots = Painel
 
 p_all = ggarrange(p1_heat,p2_heat,p3_heat,nrow = 3, ncol = 1, labels = c("a","b","c"),
-          font.label=list(color="black", face = "bold", size=7, family = "serif")) +
-          #font.label=list(color="black", face = "bold", size=18, family = "serif")) +
+          #font.label=list(color="black", face = "bold", size=7, family = "serif")) +
+          font.label=list(color="black", face = "bold", size=18, family = "serif")) +
   theme(plot.margin = margin(0.1,0.2,0.1,0.1, "cm"),
-        text = element_text(size = 7, face = "bold",family = "serif"))
-        #text = element_text(size = 16, face = "bold",family = "serif"))
+        #text = element_text(size = 7, face = "bold",family = "serif"))
+        text = element_text(size = 16, face = "bold",family = "serif"))
 
 p_all
 
